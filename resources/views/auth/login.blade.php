@@ -6,7 +6,7 @@
 <div class="min-h-screen flex items-center justify-center px-6">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <a href="{{ route('home') }}" class="font-serif text-3xl">Wed<span class="text-gold">Flow</span></a>
+            <a href="{{ route('home') }}" class="font-serif text-3xl" style="color: #2D2820;">Ar<span style="color: #C4A560;">oo</span>s</a>
             <p class="eyebrow mt-4">Enter the studio</p>
         </div>
         <div class="card p-8">
