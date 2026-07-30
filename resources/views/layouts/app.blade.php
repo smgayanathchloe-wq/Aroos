@@ -61,26 +61,26 @@
         </div>
     </aside>
 
-    {{-- Main (light) --}}
-    <div class="flex-1 min-w-0 flex flex-col">
+    {{-- Main (light theme) --}}
+    <div class="flex-1 min-w-0 flex flex-col" style="background: #FAF7F2;">
         {{-- Mobile top bar --}}
         <div class="lg:hidden flex items-center justify-between px-4 py-3 no-print" style="background: #14110E; border-bottom: 1px solid #2A241E;">
-            <a href="{{ route('weddings.index') }}" class="font-serif text-xl" style="color: #F4EDE3;">Ar<span class="text-gold">oo</span>s</a>
+            <a href="{{ route('weddings.index') }}" class="font-serif text-xl" style="color: #F4EDE3;">Ar<span style="color: #C4A560;">oo</span>s</a>
             @isset($wedding)
             <details class="relative">
                 <summary class="cursor-pointer list-none text-sm px-3 py-1.5 rounded border" style="color: #F4EDE3; border-color: #2A241E;">Menu</summary>
-                <nav class="absolute right-0 mt-2 w-60 card p-2 z-50 max-h-96 overflow-y-auto">
+                <nav class="absolute right-0 mt-2 w-60 card p-2 z-50 max-h-96 overflow-y-auto" style="background: #FAF7F2;">
                     @foreach($nav as [$route, $label, $icon])
-                        <a href="{{ route($route, $wedding) }}" class="block px-3 py-2 rounded hover:bg-canvas text-sm">{{ $icon }} {{ $label }}</a>
+                        <a href="{{ route($route, $wedding) }}" class="block px-3 py-2 rounded hover:bg-gray-200 text-sm" style="color: #14110E;">{{ $icon }} {{ $label }}</a>
                     @endforeach
                 </nav>
             </details>
             @endisset
         </div>
 
-        <main class="p-6 lg:p-10 max-w-7xl w-full flex-1">
+        <main class="p-6 lg:p-10 max-w-7xl w-full flex-1" style="background: #FAF7F2;">
             @if(session('success'))
-                <div class="mb-6 px-4 py-3 rounded-lg text-sm no-print" style="background: rgba(176,141,87,.1); border: 1px solid rgba(176,141,87,.35); color: #8a6d3f;">{{ session('success') }}</div>
+                <div class="mb-6 px-4 py-3 rounded-lg text-sm no-print" style="background: rgba(196,165,96,.08); border: 1px solid rgba(196,165,96,.3); color: #7a6a3f;">{{ session('success') }}</div>
             @endif
             @if($errors->any())
                 <div class="mb-6 px-4 py-3 rounded-lg text-sm no-print" style="background: rgba(220,80,80,.08); border: 1px solid rgba(220,80,80,.3); color: #b04a4a;">
@@ -94,7 +94,7 @@
             @yield('content')
         </main>
 
-        <footer class="text-center py-6 text-xs no-print" style="color: #B3A995;">Powered by <a href="https://letsventure.co.tz" class="text-gold hover:underline">LetsVenture</a></footer>
+        <footer class="text-center py-6 text-xs no-print" style="color: #8A7E6F; background: #FAF7F2;">Powered by <a href="https://letsventure.co.tz" class="hover:underline" style="color: #C4A560;">LetsVenture</a></footer>
     </div>
 </div>
 @endsection
