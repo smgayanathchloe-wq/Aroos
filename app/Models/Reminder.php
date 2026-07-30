@@ -13,6 +13,7 @@ class Reminder extends Model
     protected $casts = [
         'target_rsvp_statuses' => 'array',
         'target_pledge_statuses' => 'array',
+        'audience_filter' => 'array',
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
     ];

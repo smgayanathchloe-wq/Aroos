@@ -1,144 +1,362 @@
 @php
-    $themes = [
-        'atelier' => ['bg' => '#0E0C0A', 'card' => '#1B1713', 'text' => '#F4EDE3', 'muted' => '#8A7E6F', 'accent' => '#B89668', 'line' => '#2A241E'],
-        'blush' => ['bg' => '#FDF3F0', 'card' => '#FFFFFF', 'text' => '#3B2C28', 'muted' => '#A08A82', 'accent' => '#C97B63', 'line' => '#F0DDD6'],
-        'royal' => ['bg' => '#0B1230', 'card' => '#131B3F', 'text' => '#EFEBDD', 'muted' => '#8B90A8', 'accent' => '#C9A860', 'line' => '#232C55'],
-        'garden' => ['bg' => '#F6F5EE', 'card' => '#FFFFFF', 'text' => '#2E362B', 'muted' => '#8B9184', 'accent' => '#5F7A5A', 'line' => '#E3E4D7'],
+    $designs = [
+        'royal-gold' => ['bg' => '#FFFDF8', 'card' => '#FFFFFF', 'text' => '#2B2620', 'muted' => '#9A8E7C', 'accent' => '#B08D57', 'line' => '#EFE7D8', 'dark' => '#191512', 'darktext' => '#F4EDE3'],
+        'blush-rose' => ['bg' => '#FFF7F5', 'card' => '#FFFFFF', 'text' => '#4A2E2B', 'muted' => '#B08D86', 'accent' => '#C4756B', 'line' => '#F5E3DF', 'dark' => '#3A211E', 'darktext' => '#FBEFEC'],
+        'emerald-lux' => ['bg' => '#F8FAF7', 'card' => '#FFFFFF', 'text' => '#1E2B24', 'muted' => '#84948A', 'accent' => '#2E6B4F', 'line' => '#E2EAE4', 'dark' => '#122A1F', 'darktext' => '#EAF2EC'],
+        'midnight-pearl' => ['bg' => '#101527', 'card' => '#1A2036', 'text' => '#EDEAE0', 'muted' => '#8B90A8', 'accent' => '#C9B37E', 'line' => '#252C47', 'dark' => '#0A0E1C', 'darktext' => '#EDEAE0'],
     ];
-    $t = $themes[$settings->theme] ?? $themes['atelier'];
-    $sections = $settings->sections ?? ['hero', 'story', 'details', 'timeline', 'rsvp'];
+    $d = $designs[$settings->design ?? 'royal-gold'] ?? $designs['royal-gold'];
+    if ($settings->accent_override) { $d['accent'] = $settings->accent_override; }
+    $sections = $settings->sections ?? ['hero', 'countdown', 'couple', 'story', 'details', 'timeline'];
+    $isAfter = ($settings->mode ?? 'before') === 'after';
+    $headFont = match ($settings->font_style ?? 'serif') {
+        'script' => "'Great Vibes', cursive",
+        'modern' => "'Inter', sans-serif",
+        default => "'Playfair Display', serif",
+    };
+    $brideName = $settings->bride_name ?: $wedding->partner_a;
+    $groomName = $settings->groom_name ?: $wedding->partner_b;
+    $days = $wedding->daysToGo();
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $wedding->coupleNames() }} · The Wedding</title>
+    <title>{{ $wedding->coupleNames() }} · {{ $isAfter ? 'Our Wedding Story' : 'The Wedding' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: {{ $t['bg'] }}; --card: {{ $t['card'] }}; --text: {{ $t['text'] }}; --muted: {{ $t['muted'] }}; --accent: {{ $t['accent'] }}; --line: {{ $t['line'] }}; }
+        :root { --bg: {{ $d['bg'] }}; --card: {{ $d['card'] }}; --text: {{ $d['text'] }}; --muted: {{ $d['muted'] }}; --accent: {{ $d['accent'] }}; --line: {{ $d['line'] }}; --dark: {{ $d['dark'] }}; --darktext: {{ $d['darktext'] }}; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; line-height: 1.7; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif; line-height: 1.75; }
+        .head-font { font-family: {{ $headFont }}; }
         .serif { font-family: 'Playfair Display', serif; }
-        .eyebrow { letter-spacing: .3em; text-transform: uppercase; font-size: .65rem; color: var(--accent); }
-        section { max-width: 860px; margin: 0 auto; padding: 5rem 1.5rem; }
-        .hero { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; overflow: hidden; }
-        .hero-img { position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%; opacity: .25; }
-        .hero-content { position: relative; z-index: 1; padding: 1.5rem; }
-        .names { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 1.1; }
-        .amp { color: var(--accent); font-style: italic; }
-        .divider { width: 60px; height: 1px; background: var(--accent); margin: 2rem auto; }
-        .card { background: var(--card); border: 1px solid var(--line); border-radius: 1rem; padding: 2rem; }
-        .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
-        .tl-item { display: flex; gap: 1.5rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
-        .tl-time { color: var(--accent); min-width: 70px; font-weight: 500; }
-        .btn { display: inline-block; background: var(--accent); color: var(--bg); padding: .8rem 2.2rem; border-radius: .5rem; text-decoration: none; font-weight: 600; font-size: .9rem; }
-        footer { text-align: center; padding: 3rem; color: var(--muted); font-size: .75rem; }
-        h2.serif { font-size: 2rem; margin-bottom: 1.5rem; }
-        .countdown { display: flex; gap: 2rem; justify-content: center; margin-top: 2.5rem; }
-        .countdown div { text-align: center; }
-        .countdown .num { font-size: 2rem; color: var(--accent); font-family: 'Playfair Display', serif; }
-        .countdown .lbl { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+        .script { font-family: 'Great Vibes', cursive; }
+        .eyebrow { letter-spacing: .32em; text-transform: uppercase; font-size: .62rem; color: var(--accent); }
+        section { max-width: 920px; margin: 0 auto; padding: 5.5rem 1.5rem; }
+        .divider { width: 64px; height: 1px; background: var(--accent); margin: 2rem auto; position: relative; }
+        .divider::after { content: '❦'; position: absolute; top: -0.85rem; left: 50%; transform: translateX(-50%); color: var(--accent); background: var(--bg); padding: 0 .6rem; font-size: .9rem; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 1.1rem; padding: 2.2rem; }
+
+        /* Hero */
+        .hero { min-height: 96vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; overflow: hidden; padding: 2rem 1.5rem; }
+        .hero-banner { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .hero-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.55)); }
+        .hero-plain { position: absolute; inset: 0; background:
+            radial-gradient(ellipse at 20% 15%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+            radial-gradient(ellipse at 85% 80%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 50%); }
+        .hero-content { position: relative; z-index: 2; }
+        .hero.with-img .hero-content { color: #fff; }
+        .hero.with-img .eyebrow { color: #EAD9B8; }
+        .names { font-size: clamp(3rem, 9vw, 6rem); line-height: 1.12; font-family: {{ $headFont }}; }
+        .amp { color: var(--accent); font-style: italic; font-family: 'Great Vibes', cursive; }
+        .hero.with-img .amp { color: #EAD9B8; }
+        .ring { width: 90px; height: 90px; border: 1px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.6rem; font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--accent); }
+        .hero.with-img .ring { border-color: #EAD9B8; color: #EAD9B8; }
+
+        /* Countdown */
+        .countdown { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .cd-box { background: var(--card); border: 1px solid var(--line); border-radius: 1rem; padding: 1.4rem 1.2rem; min-width: 96px; text-align: center; }
+        .cd-num { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--accent); line-height: 1; }
+        .cd-lbl { font-size: .6rem; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); margin-top: .5rem; }
+
+        /* Couple profiles */
+        .couple-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
+        .profile { text-align: center; }
+        .avatar { width: 168px; height: 168px; border-radius: 50%; object-fit: cover; margin: 0 auto 1.4rem; border: 4px solid var(--accent); box-shadow: 0 18px 45px -18px color-mix(in srgb, var(--accent) 55%, transparent); }
+        .avatar-placeholder { width: 168px; height: 168px; border-radius: 50%; margin: 0 auto 1.4rem; border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+
+        /* Timeline */
+        .tl-item { display: flex; gap: 1.6rem; padding: 1.1rem 0; border-bottom: 1px solid var(--line); }
+        .tl-time { color: var(--accent); min-width: 72px; font-weight: 600; font-size: .95rem; }
+
+        /* Slides (after) */
+        .slides { position: relative; height: 78vh; overflow: hidden; }
+        .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.6s ease; }
+        .slide.active { opacity: 1; }
+        .slide img { width: 100%; height: 100%; object-fit: cover; }
+        .slide-caption { position: absolute; bottom: 3.2rem; left: 50%; transform: translateX(-50%); text-align: center; color: #fff; z-index: 3; width: min(90%, 700px); }
+        .slide-caption p { font-family: {{ $headFont }}; font-size: clamp(1.6rem, 4vw, 2.6rem); text-shadow: 0 4px 30px rgba(0,0,0,.55); }
+        .slide-veil { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55)); z-index: 2; }
+
+        /* Albums */
+        .album-tabs { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2.2rem; }
+        .album-tab { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: .55rem 1.4rem; font-size: .82rem; cursor: pointer; transition: all .2s; }
+        .album-tab.active { border-color: var(--accent); color: var(--accent); }
+        .album-panel { display: none; }
+        .album-panel.active { display: block; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+        .gallery-masonry { columns: 3 220px; column-gap: 1rem; }
+        .gallery-masonry figure { break-inside: avoid; margin-bottom: 1rem; }
+        figure { position: relative; border-radius: .9rem; overflow: hidden; }
+        figure img { width: 100%; display: block; transition: transform .5s; }
+        figure:hover img { transform: scale(1.04); }
+        figcaption { position: absolute; inset: auto 0 0 0; padding: 1.6rem .9rem .7rem; font-size: .75rem; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.65)); }
+        .carousel { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .6rem; }
+        .carousel figure { flex: 0 0 78%; max-width: 560px; scroll-snap-align: center; }
+
+        .dark-strip { background: var(--dark); color: var(--darktext); text-align: center; padding: 4.5rem 1.5rem; }
+        footer { text-align: center; padding: 3rem 1.5rem; color: var(--muted); font-size: .74rem; }
+        h2.sec-title { font-family: {{ $headFont }}; font-size: clamp(1.9rem, 4.5vw, 2.7rem); margin-bottom: .6rem; }
+        .fade-up { opacity: 0; transform: translateY(26px); transition: all .9s ease; }
+        .fade-up.vis { opacity: 1; transform: none; }
     </style>
 </head>
 <body>
-    @if(in_array('hero', $sections))
-    <div class="hero">
-        @if($settings->hero_image)
-            <img src="{{ asset('storage/'.$settings->hero_image) }}" class="hero-img" alt="">
+
+{{-- HERO --}}
+@if(in_array('hero', $sections))
+<div class="hero {{ $settings->banner_image ? 'with-img' : '' }}">
+    @if($settings->banner_image)
+        <img src="{{ asset('storage/'.$settings->banner_image) }}" class="hero-banner" alt="">
+        <div class="hero-veil"></div>
+    @else
+        <div class="hero-plain"></div>
+    @endif
+    <div class="hero-content">
+        <div class="ring">{{ mb_substr($brideName, 0, 1) }}·{{ mb_substr($groomName, 0, 1) }}</div>
+        <p class="eyebrow">{{ $isAfter ? 'We said "I do"' : 'Together with their families' }}</p>
+        <h1 class="names">{{ $brideName }} <span class="amp">&</span> {{ $groomName }}</h1>
+        <div class="divider" style="{{ $settings->banner_image ? 'background:#EAD9B8;' : '' }}"></div>
+        <p style="color: {{ $settings->banner_image ? 'rgba(255,255,255,.85)' : 'var(--muted)' }}; font-size: .95rem;">
+            {{ optional($wedding->wedding_date)->format('l, F j, Y') ?? 'A date to remember' }}
+            @if($wedding->venue_name) · {{ $wedding->venue_name }}@endif
+            @if($wedding->venue_city), {{ $wedding->venue_city }}@endif
+        </p>
+        @if(!$isAfter && $settings->welcome_message)
+            <p style="max-width: 520px; margin: 1.5rem auto 0; font-style: italic; color: {{ $settings->banner_image ? 'rgba(255,255,255,.8)' : 'var(--muted)' }};">{{ $settings->welcome_message }}</p>
         @endif
-        <div class="hero-content">
-            <p class="eyebrow">The Wedding Of</p>
-            <h1 class="serif names">{{ $wedding->partner_a }} <span class="amp">&</span> {{ $wedding->partner_b }}</h1>
-            <div class="divider"></div>
-            <p style="color: var(--muted)">
-                {{ optional($wedding->wedding_date)->format('l, F j, Y') ?? 'Date to be announced' }}
-                @if($wedding->venue_name) · {{ $wedding->venue_name }}@endif
-                @if($wedding->venue_city), {{ $wedding->venue_city }}@endif
-            </p>
-            @if($settings->welcome_message)
-                <p style="max-width: 480px; margin: 1.5rem auto 0; color: var(--muted); font-style: italic">{{ $settings->welcome_message }}</p>
+        @if($isAfter && $settings->after_message)
+            <p style="max-width: 520px; margin: 1.5rem auto 0; font-style: italic; color: {{ $settings->banner_image ? 'rgba(255,255,255,.8)' : 'var(--muted)' }};">{{ $settings->after_message }}</p>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- COUNTDOWN (before mode only) --}}
+@if(!$isAfter && in_array('countdown', $sections) && $wedding->wedding_date && $days >= 0)
+<section style="text-align: center;" class="fade-up">
+    <p class="eyebrow">The countdown</p>
+    <h2 class="sec-title">Until we say "I do"</h2>
+    <div class="countdown" id="countdown" data-date="{{ $wedding->wedding_date->format('Y-m-d') }}{{ $wedding->wedding_time ? 'T'.$wedding->wedding_time : 'T09:00:00' }}">
+        <div class="cd-box"><p class="cd-num" id="cd-d">{{ $days }}</p><p class="cd-lbl">Days</p></div>
+        <div class="cd-box"><p class="cd-num" id="cd-h">–</p><p class="cd-lbl">Hours</p></div>
+        <div class="cd-box"><p class="cd-num" id="cd-m">–</p><p class="cd-lbl">Minutes</p></div>
+        <div class="cd-box"><p class="cd-num" id="cd-s">–</p><p class="cd-lbl">Seconds</p></div>
+    </div>
+</section>
+@endif
+
+{{-- SLIDES (after mode) --}}
+@if($isAfter && in_array('slides', $sections) && $settings->slides && count($settings->slides))
+<div class="slides" id="slides">
+    @foreach($settings->slides as $i => $slide)
+        <div class="slide {{ $i === 0 ? 'active' : '' }}">
+            <img src="{{ asset('storage/'.$slide['image']) }}" alt="">
+            <div class="slide-veil"></div>
+            @if(!empty($slide['caption']))
+                <div class="slide-caption"><p>{{ $slide['caption'] }}</p></div>
             @endif
-            @if($wedding->daysToGo() !== null && $wedding->daysToGo() > 0)
-                <div class="countdown">
-                    <div><p class="num">{{ $wedding->daysToGo() }}</p><p class="lbl">Days</p></div>
-                </div>
+        </div>
+    @endforeach
+</div>
+@endif
+
+{{-- COUPLE PROFILES --}}
+@if(in_array('couple', $sections))
+<section class="fade-up">
+    <div style="text-align: center;">
+        <p class="eyebrow">The couple</p>
+        <h2 class="sec-title">{{ $isAfter ? 'Mr & Mrs' : 'Two hearts, one story' }}</h2>
+        <div class="divider"></div>
+    </div>
+    <div class="couple-grid" style="margin-top: 2.5rem;">
+        <div class="profile">
+            @if($settings->bride_photo)
+                <img src="{{ asset('storage/'.$settings->bride_photo) }}" class="avatar" alt="{{ $brideName }}">
+            @else
+                <div class="avatar-placeholder">{{ mb_substr($brideName, 0, 1) }}</div>
             @endif
+            <p class="eyebrow">The Bride</p>
+            <h3 class="head-font" style="font-size: 1.8rem; margin: .4rem 0;">{{ $brideName }}</h3>
+            <p style="color: var(--muted); font-size: .9rem; max-width: 340px; margin: 0 auto;">{{ $settings->bride_bio ?: 'The heart of every room she enters.' }}</p>
+        </div>
+        <div class="profile">
+            @if($settings->groom_photo)
+                <img src="{{ asset('storage/'.$settings->groom_photo) }}" class="avatar" alt="{{ $groomName }}">
+            @else
+                <div class="avatar-placeholder">{{ mb_substr($groomName, 0, 1) }}</div>
+            @endif
+            <p class="eyebrow">The Groom</p>
+            <h3 class="head-font" style="font-size: 1.8rem; margin: .4rem 0;">{{ $groomName }}</h3>
+            <p style="color: var(--muted); font-size: .9rem; max-width: 340px; margin: 0 auto;">{{ $settings->groom_bio ?: 'Steady, kind, and utterly devoted.' }}</p>
         </div>
     </div>
-    @endif
+</section>
+@endif
 
-    @if(in_array('story', $sections) && $wedding->story)
-    <section>
-        <p class="eyebrow">Chapter I</p>
-        <h2 class="serif">Our Story</h2>
-        <p style="color: var(--muted); white-space: pre-line">{{ $wedding->story }}</p>
+{{-- STORY --}}
+@if(in_array('story', $sections) && $wedding->story)
+<div class="dark-strip">
+    <section style="padding: 0; max-width: 720px;" class="fade-up">
+        <p class="eyebrow">Our story</p>
+        <p class="script" style="font-size: 2rem; color: var(--accent); margin: 1rem 0;">How it all began…</p>
+        <p style="white-space: pre-line; color: color-mix(in srgb, var(--darktext) 80%, transparent); font-size: .95rem;">{{ $wedding->story }}</p>
     </section>
-    @endif
+</div>
+@endif
 
-    @if(in_array('details', $sections))
-    <section>
-        <p class="eyebrow">Chapter II</p>
-        <h2 class="serif">Event Details</h2>
-        <div class="grid2">
-            <div class="card">
-                <p class="eyebrow">When</p>
-                <p class="serif" style="font-size: 1.3rem; margin-top: .6rem">{{ optional($wedding->wedding_date)->format('F j, Y') ?? 'TBA' }}</p>
-                @if($wedding->wedding_time)<p style="color: var(--muted)">{{ \Carbon\Carbon::parse($wedding->wedding_time)->format('H:i') }}</p>@endif
-            </div>
-            <div class="card">
-                <p class="eyebrow">Where</p>
-                <p class="serif" style="font-size: 1.3rem; margin-top: .6rem">{{ $wedding->venue_name ?? 'TBA' }}</p>
-                <p style="color: var(--muted)">{{ collect([$wedding->venue_city, $wedding->venue_country])->filter()->join(', ') }}</p>
-            </div>
+{{-- DETAILS (before mode emphasis) --}}
+@if(!$isAfter && in_array('details', $sections))
+<section class="fade-up">
+    <div style="text-align: center;">
+        <p class="eyebrow">Save the date</p>
+        <h2 class="sec-title">Event details</h2>
+        <div class="divider"></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.4rem; margin-top: 2rem;">
+        <div class="card" style="text-align: center;">
+            <p style="font-size: 1.6rem;">📅</p>
+            <p class="eyebrow" style="margin-top: .6rem;">When</p>
+            <p class="serif" style="font-size: 1.25rem; margin-top: .5rem;">{{ optional($wedding->wedding_date)->format('F j, Y') ?? 'To be announced' }}</p>
+            @if($wedding->wedding_time)<p style="color: var(--muted); font-size: .85rem;">from {{ \Carbon\Carbon::parse($wedding->wedding_time)->format('H:i') }}</p>@endif
         </div>
-    </section>
-    @endif
+        <div class="card" style="text-align: center;">
+            <p style="font-size: 1.6rem;">📍</p>
+            <p class="eyebrow" style="margin-top: .6rem;">Where</p>
+            <p class="serif" style="font-size: 1.25rem; margin-top: .5rem;">{{ $wedding->venue_name ?? 'To be announced' }}</p>
+            <p style="color: var(--muted); font-size: .85rem;">{{ collect([$wedding->venue_city, $wedding->venue_country])->filter()->join(', ') }}</p>
+        </div>
+    </div>
+</section>
+@endif
 
-    @if(in_array('timeline', $sections) && $wedding->timelineEvents->count())
-    <section>
-        <p class="eyebrow">Chapter III</p>
-        <h2 class="serif">The Day</h2>
+{{-- TIMELINE --}}
+@if(in_array('timeline', $sections) && $wedding->timelineEvents->count())
+<section class="fade-up">
+    <div style="text-align: center;">
+        <p class="eyebrow">{{ $isAfter ? 'How the day unfolded' : 'The day' }}</p>
+        <h2 class="sec-title">{{ $isAfter ? 'A day we will never forget' : 'Order of the day' }}</h2>
+        <div class="divider"></div>
+    </div>
+    <div style="max-width: 640px; margin: 1.6rem auto 0;">
         @foreach($wedding->timelineEvents as $event)
             <div class="tl-item">
                 <span class="tl-time">{{ \Carbon\Carbon::parse($event->start_time)->format('H:i') }}</span>
                 <div>
-                    <p>{{ $event->title }}</p>
-                    @if($event->location)<p style="color: var(--muted); font-size: .85rem">{{ $event->location }}</p>@endif
+                    <p style="font-weight: 500;">{{ $event->title }}</p>
+                    @if($event->location)<p style="color: var(--muted); font-size: .82rem;">{{ $event->location }}</p>@endif
                 </div>
             </div>
         @endforeach
-    </section>
-    @endif
+    </div>
+</section>
+@endif
 
-    @if(in_array('menus', $sections) && $wedding->menus->count())
-    <section>
-        <p class="eyebrow">On the menu</p>
-        <h2 class="serif">Menus</h2>
-        <div class="grid2">
-            @foreach($wedding->menus as $menu)
-                <div class="card">
-                    <p class="serif" style="font-size: 1.2rem; margin-bottom: 1rem">{{ $menu->name }}</p>
-                    @foreach($menu->items as $item)
-                        <p style="font-size: .9rem">{{ $item->name }}</p>
-                        @if($item->description)<p style="color: var(--muted); font-size: .78rem; margin-bottom: .5rem">{{ $item->description }}</p>@endif
-                    @endforeach
-                </div>
-            @endforeach
+{{-- MENUS --}}
+@if(in_array('menus', $sections) && $wedding->menus->count())
+<section class="fade-up">
+    <div style="text-align: center;">
+        <p class="eyebrow">On the table</p>
+        <h2 class="sec-title">The menu</h2>
+        <div class="divider"></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.4rem; margin-top: 2rem;">
+        @foreach($wedding->menus as $menu)
+            <div class="card">
+                <p class="serif" style="font-size: 1.2rem; margin-bottom: .9rem; color: var(--accent);">{{ $menu->name }}</p>
+                @foreach($menu->items as $item)
+                    <p style="font-size: .9rem;">{{ $item->name }}</p>
+                    @if($item->description)<p style="color: var(--muted); font-size: .76rem; margin-bottom: .5rem;">{{ $item->description }}</p>@endif
+                @endforeach
+            </div>
+        @endforeach
+    </div>
+</section>
+@endif
+
+{{-- ALBUMS (after mode) --}}
+@if($isAfter && in_array('albums', $sections) && $albums->count())
+<section class="fade-up" style="max-width: 1080px;">
+    <div style="text-align: center;">
+        <p class="eyebrow">The gallery</p>
+        <h2 class="sec-title">Every moment, kept forever</h2>
+        <div class="divider"></div>
+    </div>
+    <div class="album-tabs">
+        @foreach($albums as $i => $album)
+            <button class="album-tab {{ $i === 0 ? 'active' : '' }}" data-album="album-{{ $album->id }}" style="{{ $album->accent_color ? '--accent: '.$album->accent_color.';' : '' }}">{{ $album->name }} <span style="opacity:.6;">· {{ $album->photos->count() }}</span></button>
+        @endforeach
+    </div>
+    @foreach($albums as $i => $album)
+        <div class="album-panel {{ $i === 0 ? 'active' : '' }}" id="album-{{ $album->id }}">
+            @if($album->description)<p style="text-align: center; color: var(--muted); font-style: italic; margin-bottom: 1.6rem;">{{ $album->description }}</p>@endif
+            <div class="{{ $album->style === 'masonry' ? 'gallery-masonry' : ($album->style === 'carousel' ? 'carousel' : 'gallery-grid') }}">
+                @foreach($album->photos as $photo)
+                    <figure>
+                        <img src="{{ asset('storage/'.$photo->file_path) }}" loading="lazy" alt="{{ $photo->caption }}">
+                        @if($photo->caption)<figcaption>{{ $photo->caption }}</figcaption>@endif
+                    </figure>
+                @endforeach
+            </div>
         </div>
-    </section>
-    @endif
+    @endforeach
+</section>
+@endif
 
-    @if(in_array('rsvp', $sections))
-    <section style="text-align: center">
-        <p class="eyebrow">Reply</p>
-        <h2 class="serif">Will you join us?</h2>
-        <p style="color: var(--muted); max-width: 460px; margin: 0 auto 2rem">Please respond using the personal RSVP link in your invitation email or SMS.</p>
-    </section>
-    @endif
+{{-- Closing note --}}
+<div class="dark-strip">
+    <p class="script" style="font-size: 2.4rem; color: var(--accent);">{{ $isAfter ? 'Thank you for the love' : 'We can\'t wait to celebrate with you' }}</p>
+    <p class="eyebrow" style="margin-top: 1rem;">{{ $brideName }} & {{ $groomName }}{{ $wedding->wedding_date ? ' · '.$wedding->wedding_date->format('d.m.Y') : '' }}</p>
+</div>
 
-    <footer>{{ $wedding->coupleNames() }} · Powered by WedFlow</footer>
+<footer>Powered by <a href="https://letsventure.co.tz" style="color: var(--accent); text-decoration: none;">LetsVenture</a></footer>
+
+<script>
+// Countdown
+const cd = document.getElementById('countdown');
+if (cd) {
+    const target = new Date(cd.dataset.date).getTime();
+    const tick = () => {
+        const diff = Math.max(0, target - Date.now());
+        document.getElementById('cd-d').textContent = Math.floor(diff / 864e5);
+        document.getElementById('cd-h').textContent = Math.floor(diff % 864e5 / 36e5);
+        document.getElementById('cd-m').textContent = Math.floor(diff % 36e5 / 6e4);
+        document.getElementById('cd-s').textContent = Math.floor(diff % 6e4 / 1e3);
+    };
+    tick();
+    setInterval(tick, 1000);
+}
+
+// Slides
+const slides = document.querySelectorAll('#slides .slide');
+if (slides.length > 1) {
+    let cur = 0;
+    setInterval(() => {
+        slides[cur].classList.remove('active');
+        cur = (cur + 1) % slides.length;
+        slides[cur].classList.add('active');
+    }, 5200);
+}
+
+// Album tabs
+document.querySelectorAll('.album-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.album-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.album-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.album).classList.add('active');
+    });
+});
+
+// Fade-up on scroll
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: .12 });
+document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+</script>
 </body>
 </html>

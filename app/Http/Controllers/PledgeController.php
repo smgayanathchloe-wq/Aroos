@@ -72,6 +72,14 @@ class PledgeController extends Controller
         return back()->with('success', 'Pledge removed.');
     }
 
+    public function printList(Wedding $wedding)
+    {
+        $pledges = $wedding->pledges()->with(['guest', 'contributions'])->orderBy('pledger_name')->get();
+        $contributions = $wedding->contributions()->with('pledge')->orderBy('received_on')->get();
+
+        return view('pledges.print', compact('wedding', 'pledges', 'contributions'));
+    }
+
     public function storeContribution(Request $request, Wedding $wedding)
     {
         $data = $request->validate([

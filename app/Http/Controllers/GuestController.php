@@ -57,6 +57,13 @@ class GuestController extends Controller
         return back()->with('success', 'Guest removed.');
     }
 
+    public function printList(Request $request, Wedding $wedding)
+    {
+        $guests = $wedding->guests()->with('seatingTable')->orderBy('first_name')->get();
+
+        return view('guests.print', compact('wedding', 'guests'));
+    }
+
     private function validated(Request $request): array
     {
         return $request->validate([

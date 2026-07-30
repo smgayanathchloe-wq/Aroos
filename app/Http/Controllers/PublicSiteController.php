@@ -16,8 +16,9 @@ class PublicSiteController extends Controller
         abort_unless($settings && $settings->published, 404);
 
         $wedding->load(['timelineEvents' => fn ($q) => $q->where('public', true), 'menus.items']);
+        $albums = $wedding->albums()->where('public', true)->with('photos')->get();
 
-        return view('public.site', compact('wedding', 'settings'));
+        return view('public.site', compact('wedding', 'settings', 'albums'));
     }
 
     public function rsvp(string $slug, string $token)

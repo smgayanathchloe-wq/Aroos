@@ -64,6 +64,14 @@ class SeatingController extends Controller
         return back()->with('success', 'Table deleted.');
     }
 
+    public function printChart(Wedding $wedding)
+    {
+        $tables = $wedding->seatingTables()->with('guests')->get();
+        $unseated = $wedding->guests()->whereNull('seating_table_id')->orderBy('first_name')->get();
+
+        return view('seating.print', compact('wedding', 'tables', 'unseated'));
+    }
+
     public function assign(Request $request, Wedding $wedding)
     {
         $data = $request->validate([

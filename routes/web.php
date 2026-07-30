@@ -3,17 +3,21 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\CheckinController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\CollaboratorController;
 use App\Http\Controllers\CrewController;
+use App\Http\Controllers\FloorPlanController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\InspirationController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PledgeController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SeatingController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\VendorController;
@@ -22,6 +26,7 @@ use App\Http\Controllers\WeddingController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::post('/contact', [LandingController::class, 'contact'])->name('landing.contact');
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -32,11 +37,13 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Public wedding site + RSVP + invitation card
+// Public wedding site + RSVP + invitation card + QR check-in
 Route::get('/w/{slug}', [PublicSiteController::class, 'site'])->name('public.site');
 Route::get('/w/{slug}/rsvp/{token}', [PublicSiteController::class, 'rsvp'])->name('public.rsvp');
 Route::post('/w/{slug}/rsvp/{token}', [PublicSiteController::class, 'submitRsvp'])->name('public.rsvp.submit');
 Route::get('/w/{slug}/invitation/{token}', [PublicSiteController::class, 'invitation'])->name('public.invitation');
+Route::get('/w/{slug}/checkin/{token}', [CheckinController::class, 'scan'])->name('public.checkin.scan');
+Route::post('/w/{slug}/checkin/{token}', [CheckinController::class, 'confirm'])->name('public.checkin.confirm');
 
 // Authenticated app
 Route::middleware('auth')->group(function () {
@@ -46,6 +53,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
         Route::put('/users/{user}/role', [AdminController::class, 'updateRole'])->name('admin.users.role');
         Route::delete('/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
+        Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
+        Route::post('/settings', [AdminController::class, 'saveSettings'])->name('admin.settings.save');
+        Route::post('/settings/test-sms', [AdminController::class, 'testSms'])->name('admin.settings.test-sms');
+        Route::get('/requests', [AdminController::class, 'requests'])->name('admin.requests');
+        Route::put('/requests/{contactRequest}', [AdminController::class, 'updateRequest'])->name('admin.requests.update');
     });
 
     Route::get('/weddings', [WeddingController::class, 'index'])->name('weddings.index');
@@ -77,6 +89,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/guests', [GuestController::class, 'store'])->name('guests.store');
         Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
         Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
+        Route::get('/guests/print', [GuestController::class, 'printList'])->name('guests.print');
 
         // Seating
         Route::get('/seating', [SeatingController::class, 'index'])->name('seating.index');
@@ -84,6 +97,21 @@ Route::middleware('auth')->group(function () {
         Route::put('/seating/{table}', [SeatingController::class, 'update'])->name('seating.update');
         Route::delete('/seating/{table}', [SeatingController::class, 'destroy'])->name('seating.destroy');
         Route::post('/seating/assign', [SeatingController::class, 'assign'])->name('seating.assign');
+        Route::get('/seating/print', [SeatingController::class, 'printChart'])->name('seating.print');
+
+        // Floor plan (2D)
+        Route::get('/floorplan', [FloorPlanController::class, 'index'])->name('floorplan.index');
+        Route::post('/floorplan', [FloorPlanController::class, 'store'])->name('floorplan.store');
+        Route::post('/floorplan/bulk', [FloorPlanController::class, 'bulkUpdate'])->name('floorplan.bulk');
+        Route::delete('/floorplan/{element}', [FloorPlanController::class, 'destroy'])->name('floorplan.destroy');
+
+        // Check-in & QR cards
+        Route::get('/checkin', [CheckinController::class, 'index'])->name('checkin.index');
+        Route::get('/checkin/cards', [CheckinController::class, 'cardsAll'])->name('checkin.cards');
+        Route::get('/checkin/card/{guest}', [CheckinController::class, 'card'])->name('checkin.card');
+        Route::post('/checkin/{guest}/manual', [CheckinController::class, 'manual'])->name('checkin.manual');
+        Route::post('/checkin/{guest}/undo', [CheckinController::class, 'undo'])->name('checkin.undo');
+        Route::get('/checkin/print', [CheckinController::class, 'printList'])->name('checkin.print');
 
         // Vendors
         Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
@@ -117,9 +145,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/inspiration', [InspirationController::class, 'store'])->name('inspiration.store');
         Route::delete('/inspiration/{inspiration}', [InspirationController::class, 'destroy'])->name('inspiration.destroy');
 
-        // Photos
+        // Photos & albums
         Route::get('/photos', [PhotoController::class, 'index'])->name('photos.index');
         Route::post('/photos', [PhotoController::class, 'store'])->name('photos.store');
+        Route::post('/photos/albums', [PhotoController::class, 'storeAlbum'])->name('photos.albums.store');
+        Route::put('/photos/albums/{album}', [PhotoController::class, 'updateAlbum'])->name('photos.albums.update');
+        Route::delete('/photos/albums/{album}', [PhotoController::class, 'destroyAlbum'])->name('photos.albums.destroy');
+        Route::put('/photos/{photo}/move', [PhotoController::class, 'move'])->name('photos.move');
         Route::delete('/photos/{photo}', [PhotoController::class, 'destroy'])->name('photos.destroy');
 
         // Memories
@@ -133,12 +165,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/pledges/{pledge}', [PledgeController::class, 'destroy'])->name('pledges.destroy');
         Route::post('/contributions', [PledgeController::class, 'storeContribution'])->name('contributions.store');
         Route::delete('/contributions/{contribution}', [PledgeController::class, 'destroyContribution'])->name('contributions.destroy');
+        Route::get('/pledges/print', [PledgeController::class, 'printList'])->name('pledges.print');
 
-        // Reminders
+        // Messages / reminders
         Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
         Route::post('/reminders', [ReminderController::class, 'store'])->name('reminders.store');
         Route::put('/reminders/{reminder}', [ReminderController::class, 'update'])->name('reminders.update');
         Route::delete('/reminders/{reminder}', [ReminderController::class, 'destroy'])->name('reminders.destroy');
+        Route::get('/reminders/{reminder}/preview', [ReminderController::class, 'preview'])->name('reminders.preview');
         Route::post('/reminders/{reminder}/send', [ReminderController::class, 'send'])->name('reminders.send');
         Route::get('/reminders/{reminder}/logs', [ReminderController::class, 'logs'])->name('reminders.logs');
 
@@ -150,5 +184,8 @@ Route::middleware('auth')->group(function () {
         // Website builder
         Route::get('/website', [WebsiteController::class, 'edit'])->name('website.edit');
         Route::put('/website', [WebsiteController::class, 'update'])->name('website.update');
+
+        // Full report
+        Route::get('/report', [ReportController::class, 'index'])->name('report.index');
     });
 });

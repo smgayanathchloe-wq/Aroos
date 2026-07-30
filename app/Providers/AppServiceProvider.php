@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\AdminController;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Apply admin-configured SMTP settings at runtime.
+        try {
+            if (Schema::hasTable('settings')) {
+                AdminController::applyMailConfig();
+            }
+        } catch (\Throwable) {
+            // Database not ready (e.g. during install) — ignore.
+        }
     }
 }

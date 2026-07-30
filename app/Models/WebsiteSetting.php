@@ -9,7 +9,7 @@ class WebsiteSetting extends Model
 {
     protected $guarded = [];
 
-    protected $casts = ['published' => 'boolean', 'sections' => 'array'];
+    protected $casts = ['published' => 'boolean', 'sections' => 'array', 'slides' => 'array'];
 
     public function wedding(): BelongsTo { return $this->belongsTo(Wedding::class); }
 }

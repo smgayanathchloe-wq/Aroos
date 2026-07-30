@@ -44,6 +44,8 @@ class Wedding extends Model
     public function menus(): HasMany { return $this->hasMany(Menu::class)->orderBy('sort_order'); }
     public function inspirations(): HasMany { return $this->hasMany(Inspiration::class); }
     public function photos(): HasMany { return $this->hasMany(Photo::class); }
+    public function albums(): HasMany { return $this->hasMany(Album::class)->orderBy('sort_order'); }
+    public function floorPlanElements(): HasMany { return $this->hasMany(FloorPlanElement::class); }
     public function memories(): HasMany { return $this->hasMany(Memory::class); }
     public function websiteSetting(): HasOne { return $this->hasOne(WebsiteSetting::class); }
     public function pledges(): HasMany { return $this->hasMany(Pledge::class); }
@@ -58,5 +60,10 @@ class Wedding extends Model
     public function daysToGo(): ?int
     {
         return $this->wedding_date ? (int) now()->startOfDay()->diffInDays($this->wedding_date, false) : null;
+    }
+
+    public function isPast(): bool
+    {
+        return $this->wedding_date !== null && $this->wedding_date->isPast() && ! $this->wedding_date->isToday();
     }
 }
