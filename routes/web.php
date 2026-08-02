@@ -1,6 +1,8 @@
 <?php
 
-use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\PackageController;
+use App\Http\Controllers\PledgeReportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CheckinController;
@@ -58,6 +60,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/test-sms', [AdminController::class, 'testSms'])->name('admin.settings.test-sms');
         Route::get('/requests', [AdminController::class, 'requests'])->name('admin.requests');
         Route::put('/requests/{contactRequest}', [AdminController::class, 'updateRequest'])->name('admin.requests.update');
+
+        // Packages management
+        Route::get('/packages', [PackageController::class, 'index'])->name('admin.packages.index');
+        Route::get('/packages/create', [PackageController::class, 'create'])->name('admin.packages.create');
+        Route::post('/packages', [PackageController::class, 'store'])->name('admin.packages.store');
+        Route::get('/packages/{package}/edit', [PackageController::class, 'edit'])->name('admin.packages.edit');
+        Route::put('/packages/{package}', [PackageController::class, 'update'])->name('admin.packages.update');
+        Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('admin.packages.destroy');
+
+        // Analytics
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics.index');
+        Route::get('/analytics/wedding/{wedding}', [AnalyticsController::class, 'wedding'])->name('admin.analytics.wedding');
+        Route::delete('/analytics/wedding/{wedding}', [AnalyticsController::class, 'deleteWedding'])->name('admin.wedding.delete');
     });
 
     Route::get('/weddings', [WeddingController::class, 'index'])->name('weddings.index');
@@ -166,6 +181,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/contributions', [PledgeController::class, 'storeContribution'])->name('contributions.store');
         Route::delete('/contributions/{contribution}', [PledgeController::class, 'destroyContribution'])->name('contributions.destroy');
         Route::get('/pledges/print', [PledgeController::class, 'printList'])->name('pledges.print');
+        Route::get('/pledges/report/print', [PledgeReportController::class, 'print'])->name('pledges.report.print');
 
         // Messages / reminders
         Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
