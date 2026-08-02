@@ -32,11 +32,12 @@
                     ['reminders.index', 'Messages', '✉️'],
                     ['collaborators.index', 'Collaborators', '🔑'],
                     ['website.edit', 'Website', '🌐'],
+                    ['storage.show', 'Storage', '💾'],
                     ['report.index', 'Report', '📄'],
                 ];
             @endphp
             @foreach($nav as [$route, $label, $icon])
-                @php $active = request()->routeIs(str_replace('.index', '.*', $route)) || request()->routeIs($route) || ($route === 'website.edit' && request()->routeIs('website.*')); @endphp
+                @php $active = request()->routeIs(str_replace('.index', '.*', $route)) || request()->routeIs($route) || ($route === 'website.edit' && request()->routeIs('website.*')) || ($route === 'storage.show' && request()->routeIs('storage.*')); @endphp
                 <a href="{{ route($route, $wedding) }}"
                    class="flex items-center gap-3 px-6 py-2 transition"
                    style="{{ $active ? 'color:#C9AB7C;background:#1B1713;border-right:2px solid #B08D57;' : 'color:rgba(244,237,227,.65);' }}">

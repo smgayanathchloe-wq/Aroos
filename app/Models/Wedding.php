@@ -51,6 +51,8 @@ class Wedding extends Model
     public function pledges(): HasMany { return $this->hasMany(Pledge::class); }
     public function contributions(): HasMany { return $this->hasMany(Contribution::class); }
     public function reminders(): HasMany { return $this->hasMany(Reminder::class); }
+    public function storagePlan(): HasOne { return $this->hasOne(StoragePlan::class); }
+    public function subscriptions(): HasMany { return $this->hasMany(WeddingSubscription::class); }
 
     public function coupleNames(): string
     {

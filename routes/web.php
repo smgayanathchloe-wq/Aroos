@@ -22,6 +22,7 @@ use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SeatingController;
+use App\Http\Controllers\StorageController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WebsiteController;
@@ -201,6 +202,10 @@ Route::middleware('auth')->group(function () {
         // Website builder
         Route::get('/website', [WebsiteController::class, 'edit'])->name('website.edit');
         Route::put('/website', [WebsiteController::class, 'update'])->name('website.update');
+
+        // Storage management
+        Route::get('/storage', [StorageController::class, 'show'])->name('storage.show');
+        Route::put('/storage', [StorageController::class, 'update'])->name('storage.update');
 
         // Full report
         Route::get('/report', [ReportController::class, 'index'])->name('report.index');
