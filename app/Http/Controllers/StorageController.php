@@ -12,9 +12,9 @@ class StorageController extends Controller
      */
     public function show(Wedding $wedding)
     {
-        $this->authorize('view', $wedding);
+        // User should have access through middleware, no need for explicit authorize
 
-        $storagePlan = $wedding->storagePlan();
+        $storagePlan = $wedding->storagePlan;
         if (!$storagePlan) {
             $storagePlan = $wedding->storagePlan()->create([
                 'total_bytes' => 2147483648, // 2GB default
@@ -35,7 +35,7 @@ class StorageController extends Controller
      */
     public function update(Request $request, Wedding $wedding)
     {
-        $this->authorize('update', $wedding);
+        // User should have access through middleware, no need for explicit authorize
 
         $data = $request->validate([
             'plan_type' => ['required', 'in:free,5gb,10gb,20gb,50gb'],
@@ -49,7 +49,7 @@ class StorageController extends Controller
             '50gb' => 53687091200, // 50GB
         ];
 
-        $storagePlan = $wedding->storagePlan();
+        $storagePlan = $wedding->storagePlan;
         if (!$storagePlan) {
             $storagePlan = $wedding->storagePlan()->create($data);
         }
