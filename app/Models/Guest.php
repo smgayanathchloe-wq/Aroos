@@ -16,6 +16,7 @@ class Guest extends Model
         'invite_sent_at' => 'datetime',
         'rsvp_at' => 'datetime',
         'checked_in_at' => 'datetime',
+        'is_special_guest' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -42,5 +43,35 @@ class Guest extends Model
     public function isCheckedIn(): bool
     {
         return $this->checked_in_at !== null;
+    }
+
+    /**
+     * Get contribution status: pledged, partial, fulfilled, none
+     */
+    public function getContributionStatus(): string
+    {
+        if ($this->is_special_guest) {
+            return 'special';
+        }
+
+        $pledged = $this->pledges()->sum('amount') ?? 0;
+        if ($pledged === 0) {
+            return 'none';
+        }
+
+        $contributed = $this->pledges()
+            ->with('contributions')
+            ->get()
+            ->sum(fn($p) => $p->contributions->sum('amount')) ?? 0;
+
+        if ($contributed === 0) {
+            return 'pledged';
+        }
+
+        if ($contributed >= $pledged) {
+            return 'fulfilled';
+        }
+
+        return 'partial';
     }
 }

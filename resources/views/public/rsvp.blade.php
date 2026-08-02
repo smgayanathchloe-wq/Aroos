@@ -60,7 +60,7 @@
 
             <button class="btn">Submit RSVP</button>
         </form>
-        <p style="text-align: center; color: #6B6154; font-size: .7rem; margin-top: 1.5rem">Powered by WedFlow</p>
+        <p style="text-align: center; color: #6B6154; font-size: .7rem; margin-top: 1.5rem">Powered by <a href="https://letsventure.co.tz" style="color: #B08D57; text-decoration: none;">LetsVenture</a></p>
     </div>
 </body>
 </html>
