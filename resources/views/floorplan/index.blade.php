@@ -43,9 +43,11 @@
             <div class="fp-el absolute cursor-move select-none flex flex-col items-center justify-center text-center"
                  data-id="{{ $el->id }}" data-table="{{ $isTable ? 1 : 0 }}" data-cap="{{ $cap }}"
                  style="left: {{ $el->x }}px; top: {{ $el->y }}px; width: {{ $el->width }}px; height: {{ $el->height }}px; transform: rotate({{ $el->rotation }}deg);
-                        {{ $el->type === 'table_round' ? 'border-radius: 50%;' : 'border-radius: 10px;' }}
+                        {{ $el->type === 'table_round' ? 'border-radius: 50%;' : ($el->type === 'table_rect' ? 'border-radius: 6px;' : 'border-radius: 10px;') }}
                         background: {{ $isTable ? 'linear-gradient(160deg, #FFFFFF, #F4EBDC)' : ($el->type === 'dance_floor' ? 'repeating-linear-gradient(45deg, #EFE6D5, #EFE6D5 12px, #F7F1E5 12px, #F7F1E5 24px)' : '#F1E8D9') }};
-                        border: 2px solid {{ $isTable ? '#B08D57' : '#C9B893' }}; z-index: 5;">
+                        border: 2px solid {{ $isTable ? '#B08D57' : '#C9B893' }}; 
+                        box-shadow: {{ $el->type === 'table_round' ? 'inset 0 0 10px rgba(0,0,0,.05)' : ($el->type === 'table_rect' ? '0 2px 4px rgba(0,0,0,.08)' : 'none') }};
+                        z-index: 5; position: relative;">
                 <span class="text-[11px] font-semibold pointer-events-none" style="color: #6B573A;">{{ $el->label ?: str_replace('_', ' ', ucfirst($el->type)) }}</span>
                 @if($isTable)
                     <span class="text-[9px] pointer-events-none" style="color:#9A8464;">{{ $used }}/{{ $cap }} seated</span>
