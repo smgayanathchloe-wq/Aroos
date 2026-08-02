@@ -422,12 +422,6 @@
     </script>
 </section>
 @endif
-                @endforeach
-            </div>
-        </div>
-    @endforeach
-</section>
-@endif
 
 {{-- Closing note --}}
 <div class="dark-strip">
