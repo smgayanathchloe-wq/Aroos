@@ -165,7 +165,7 @@
 </div>
 @endif
 
-{{-- COUPLE PROFILES --}}
+{{-- COUPLE PROFILES - Enhanced --}}
 @if(in_array('couple', $sections))
 <section class="fade-up">
     <div style="text-align: center;">
@@ -173,26 +173,40 @@
         <h2 class="sec-title">{{ $isAfter ? 'Mr & Mrs' : 'Two hearts, one story' }}</h2>
         <div class="divider"></div>
     </div>
-    <div class="couple-grid" style="margin-top: 2.5rem;">
-        <div class="profile">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-top: 3rem;">
+        {{-- Bride --}}
+        <div style="text-align: center;">
             @if($settings->bride_photo)
-                <img src="{{ asset('storage/'.$settings->bride_photo) }}" class="avatar" alt="{{ $brideName }}">
+                <div style="position: relative; margin-bottom: 2rem;">
+                    <img src="{{ asset('storage/'.$settings->bride_photo) }}" 
+                         style="width: 100%; max-width: 280px; height: 340px; object-fit: cover; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.15); display: block; margin: 0 auto;"
+                         alt="{{ $brideName }}">
+                    <div style="position: absolute; -bottom: 1rem; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 0.5rem 1.5rem; border-radius: 999px; font-size: .8rem; font-weight: 600;">The Bride</div>
+                </div>
             @else
-                <div class="avatar-placeholder">{{ mb_substr($brideName, 0, 1) }}</div>
+                <div style="width: 280px; height: 340px; margin: 0 auto 2rem; border-radius: 8px; background: color-mix(in srgb, var(--accent) 15%, var(--card)); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 4rem; color: var(--accent);">
+                    {{ mb_substr($brideName, 0, 1) }}
+                </div>
             @endif
-            <p class="eyebrow">The Bride</p>
-            <h3 class="head-font" style="font-size: 1.8rem; margin: .4rem 0;">{{ $brideName }}</h3>
-            <p style="color: var(--muted); font-size: .9rem; max-width: 340px; margin: 0 auto;">{{ $settings->bride_bio ?: 'The heart of every room she enters.' }}</p>
+            <h3 class="head-font" style="font-size: 2rem; margin: 1rem 0 .5rem;">{{ $brideName }}</h3>
+            <p style="color: var(--muted); font-size: .95rem; line-height: 1.6; max-width: 340px; margin: 0 auto;">{{ $settings->bride_bio ?: 'The heart of every room she enters. Warm, graceful, and brilliantly kind.' }}</p>
         </div>
-        <div class="profile">
+        {{-- Groom --}}
+        <div style="text-align: center;">
             @if($settings->groom_photo)
-                <img src="{{ asset('storage/'.$settings->groom_photo) }}" class="avatar" alt="{{ $groomName }}">
+                <div style="position: relative; margin-bottom: 2rem;">
+                    <img src="{{ asset('storage/'.$settings->groom_photo) }}" 
+                         style="width: 100%; max-width: 280px; height: 340px; object-fit: cover; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.15); display: block; margin: 0 auto;"
+                         alt="{{ $groomName }}">
+                    <div style="position: absolute; -bottom: 1rem; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 0.5rem 1.5rem; border-radius: 999px; font-size: .8rem; font-weight: 600;">The Groom</div>
+                </div>
             @else
-                <div class="avatar-placeholder">{{ mb_substr($groomName, 0, 1) }}</div>
+                <div style="width: 280px; height: 340px; margin: 0 auto 2rem; border-radius: 8px; background: color-mix(in srgb, var(--accent) 15%, var(--card)); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 4rem; color: var(--accent);">
+                    {{ mb_substr($groomName, 0, 1) }}
+                </div>
             @endif
-            <p class="eyebrow">The Groom</p>
-            <h3 class="head-font" style="font-size: 1.8rem; margin: .4rem 0;">{{ $groomName }}</h3>
-            <p style="color: var(--muted); font-size: .9rem; max-width: 340px; margin: 0 auto;">{{ $settings->groom_bio ?: 'Steady, kind, and utterly devoted.' }}</p>
+            <h3 class="head-font" style="font-size: 2rem; margin: 1rem 0 .5rem;">{{ $groomName }}</h3>
+            <p style="color: var(--muted); font-size: .95rem; line-height: 1.6; max-width: 340px; margin: 0 auto;">{{ $settings->groom_bio ?: 'Steady, thoughtful, and utterly devoted. A gentleman with a great laugh.' }}</p>
         </div>
     </div>
 </section>
@@ -230,6 +244,60 @@
             <p class="serif" style="font-size: 1.25rem; margin-top: .5rem;">{{ $wedding->venue_name ?? 'To be announced' }}</p>
             <p style="color: var(--muted); font-size: .85rem;">{{ collect([$wedding->venue_city, $wedding->venue_country])->filter()->join(', ') }}</p>
         </div>
+    </div>
+</section>
+@endif
+
+{{-- OTHER EVENTS (Proposal, Engagement, Send-off, etc) --}}
+@if(in_array('other_events', $sections) && ($wedding->timelineEvents->where('category', '!=', 'ceremony')->count() > 0 || !$isAfter))
+<section class="fade-up">
+    <div style="text-align: center;">
+        <p class="eyebrow">Related celebrations</p>
+        <h2 class="sec-title">Our story together</h2>
+        <div class="divider"></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        @php
+            $otherEvents = $wedding->timelineEvents()
+                ->where('category', '!=', 'ceremony')
+                ->orderBy('event_date')
+                ->get();
+        @endphp
+        @forelse($otherEvents as $evt)
+            <div class="card" style="overflow: hidden; transition: transform .3s;">
+                @if($evt->photo_url)
+                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--bg))); overflow: hidden; margin-bottom: 1.5rem;">
+                        <img src="{{ asset('storage/'.$evt->photo_url) }}" style="width: 100%; height: 100%; object-fit: cover;" alt="{{ $evt->title }}">
+                    </div>
+                @else
+                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--bg))); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; font-size: 3rem;">
+                        {{ match($evt->category ?? 'other') {
+                            'proposal' => '💍',
+                            'engagement' => '✨',
+                            'sendoff' => '🚗',
+                            'bachelor' => '🎉',
+                            'rehearsal' => '🎭',
+                            default => '🎊'
+                        } }}
+                    </div>
+                @endif
+                <h3 class="head-font" style="font-size: 1.3rem; margin: 0 0 .5rem; text-transform: capitalize;">{{ $evt->title }}</h3>
+                <p class="eyebrow" style="margin: 0.5rem 0;">{{ optional($evt->event_date)->format('F j, Y') }}</p>
+                @if($evt->location)
+                    <p style="color: var(--muted); font-size: .85rem; margin: 0.3rem 0;">📍 {{ $evt->location }}</p>
+                @endif
+                @if($evt->description)
+                    <p style="color: var(--muted); font-size: .9rem; margin: 1rem 0;">{{ Str::limit($evt->description, 120) }}</p>
+                @endif
+                @if($evt->album_id)
+                    <a href="#albums" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: color-mix(in srgb, var(--accent) 20%, var(--bg)); color: var(--accent); border-radius: 999px; text-decoration: none; font-size: .85rem; font-weight: 600;">View photos →</a>
+                @endif
+            </div>
+        @empty
+            @if(!$isAfter)
+                <p style="grid-column: 1 / -1; text-align: center; color: var(--muted); font-style: italic;">Add engagement, proposal, or other special moments to your timeline.</p>
+            @endif
+        @endforelse
     </div>
 </section>
 @endif
@@ -278,28 +346,82 @@
 </section>
 @endif
 
-{{-- ALBUMS (after mode) --}}
+{{-- ALBUMS (after mode) with Enhanced Styling --}}
 @if($isAfter && in_array('albums', $sections) && $albums->count())
-<section class="fade-up" style="max-width: 1080px;">
-    <div style="text-align: center;">
+<section class="fade-up" style="max-width: 1200px; position: relative;">
+    @php
+        $templates = [
+            'minimal' => ['bg' => 'linear-gradient(135deg, #FFFDF9 0%, #FAF5EC 100%)', 'border' => 'none'],
+            'floral-rose' => ['bg' => 'linear-gradient(135deg, #FFF5F7 0%, #FFE8ED 100%)', 'border' => 'repeating-linear-gradient(45deg, #FFB6C1, #FFB6C1 10px, #FFC0CB 10px, #FFC0CB 20px)'],
+            'floral-lily' => ['bg' => 'linear-gradient(135deg, #FFFAF0 0%, #FFEAA7 100%)', 'border' => 'repeating-linear-gradient(90deg, #FFD700, #FFD700 8px, #FFA500 8px, #FFA500 16px)'],
+            'floral-orchid' => ['bg' => 'linear-gradient(135deg, #F5E6F8 0%, #E6D5F8 100%)', 'border' => 'repeating-linear-gradient(45deg, #DA70D6, #DA70D6 12px, #FF1493 12px, #FF1493 24px)'],
+            'vintage' => ['bg' => 'linear-gradient(135deg, #F5F1E8 0%, #E8DACC 100%)', 'border' => 'repeating-linear-gradient(0deg, #D4A574, #D4A574 15px, #C19A6B 15px, #C19A6B 30px)'],
+            'modern' => ['bg' => 'linear-gradient(135deg, #F0F0F0 0%, #FFFFFF 100%)', 'border' => '2px solid #333']
+        ];
+    @endphp
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
         <p class="eyebrow">The gallery</p>
         <h2 class="sec-title">Every moment, kept forever</h2>
         <div class="divider"></div>
     </div>
-    <div class="album-tabs">
-        @foreach($albums as $i => $album)
-            <button class="album-tab {{ $i === 0 ? 'active' : '' }}" data-album="album-{{ $album->id }}" style="{{ $album->accent_color ? '--accent: '.$album->accent_color.';' : '' }}">{{ $album->name }} <span style="opacity:.6;">· {{ $album->photos->count() }}</span></button>
+
+    {{-- Category Filter Tabs --}}
+    <div class="album-tabs" style="justify-content: center; margin-bottom: 2rem;">
+        <button class="album-tab active" data-album="all-albums" style="border-radius: 999px;">All</button>
+        @php $categories = $albums->pluck('category')->unique(); @endphp
+        @foreach($categories as $cat)
+            <button class="album-tab" data-album="cat-{{ $cat }}" style="border-radius: 999px; text-transform: capitalize;">{{ $cat }}</button>
         @endforeach
     </div>
+
+    {{-- Albums with Flower Templates --}}
     @foreach($albums as $i => $album)
-        <div class="album-panel {{ $i === 0 ? 'active' : '' }}" id="album-{{ $album->id }}">
-            @if($album->description)<p style="text-align: center; color: var(--muted); font-style: italic; margin-bottom: 1.6rem;">{{ $album->description }}</p>@endif
+        @php
+            $template = $templates[$album->template] ?? $templates['minimal'];
+        @endphp
+        <div class="album-panel {{ $i === 0 ? 'active' : '' }}" id="album-{{ $album->id }}" data-category="{{ $album->category }}" style="margin-bottom: 3rem; padding: 2rem; background: {{ $template['bg'] }}; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.08);">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h3 class="head-font" style="font-size: 1.6rem; margin: 0; color: var(--text);">{{ $album->name }}</h3>
+                @if($album->description)
+                    <p style="color: var(--muted); font-style: italic; margin: 0.5rem 0 0;">{{ $album->description }}</p>
+                @endif
+            </div>
+            
             <div class="{{ $album->style === 'masonry' ? 'gallery-masonry' : ($album->style === 'carousel' ? 'carousel' : 'gallery-grid') }}">
-                @foreach($album->photos as $photo)
-                    <figure>
-                        <img src="{{ asset('storage/'.$photo->file_path) }}" loading="lazy" alt="{{ $photo->caption }}">
-                        @if($photo->caption)<figcaption>{{ $photo->caption }}</figcaption>@endif
+                @forelse($album->photos as $photo)
+                    <figure style="border-radius: 8px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,.1);">
+                        <img src="{{ asset('storage/'.$photo->file_path) }}" loading="lazy" alt="{{ $photo->caption }}" style="transition: transform .3s ease;">
+                        @if($photo->caption)
+                            <figcaption style="background: linear-gradient(180deg, transparent, rgba(0,0,0,.7)); color: white; padding: 1.5rem 1rem 1rem;">{{ $photo->caption }}</figcaption>
+                        @endif
                     </figure>
+                @empty
+                    <p style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 2rem;">No photos in this album yet.</p>
+                @endforelse
+            </div>
+        </div>
+    @endforeach
+
+    <script>
+        document.querySelectorAll('.album-tab').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.album-tab').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const target = this.dataset.album;
+                document.querySelectorAll('.album-panel').forEach(panel => {
+                    if (target === 'all-albums') {
+                        panel.style.display = 'block';
+                    } else {
+                        const cat = target.replace('cat-', '');
+                        panel.style.display = panel.dataset.category === cat ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</section>
+@endif
                 @endforeach
             </div>
         </div>
