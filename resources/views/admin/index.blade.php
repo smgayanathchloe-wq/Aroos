@@ -96,8 +96,13 @@
                     <td class="px-4 py-3 text-xs text-muted">{{ $w->user->name }} ({{ $w->user->role }})</td>
                     <td class="px-4 py-3 text-xs text-muted">{{ optional($w->wedding_date)->format('M j, Y') ?? 'TBA' }}</td>
                     <td class="px-4 py-3 text-xs text-muted">{{ $w->venue_name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-4 py-3 text-right space-x-2">
                         <a href="{{ route('wedding.dashboard', $w) }}" class="text-xs text-gold hover:underline">Open</a>
+                        <form method="POST" action="{{ route('admin.wedding.delete', $w) }}" class="inline" onsubmit="return confirm('Delete wedding for {{ $w->coupleNames() }} and ALL associated data? This cannot be undone.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+                        </form>
                     </td>
                 </tr>
             @endforeach
