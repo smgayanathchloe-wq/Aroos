@@ -88,7 +88,7 @@ class AnalyticsController extends Controller
         $wedding->checklistPhases()->delete();
         $wedding->timelineEvents()->delete();
         $wedding->menus()->delete();
-        $wedding->memor ies()->delete();
+        $wedding->memories()->delete();
         $wedding->inspirations()->delete();
         $wedding->collaborators()->delete();
         $wedding->websiteSetting()->delete();

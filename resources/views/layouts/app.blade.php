@@ -47,7 +47,8 @@
         @endisset
         <div class="px-6 py-4" style="border-top: 1px solid #2A241E;">
             @if(auth()->user()->isSuperAdmin())
-                <a href="{{ route('admin.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.*') ? '#C9AB7C' : '#8A7E6F' }};">⚙️ Admin Panel</a>
+                <a href="{{ route('admin.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.index') ? '#C9AB7C' : '#8A7E6F' }};">⚙️ Admin Panel</a>
+                <a href="{{ route('admin.packages.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.packages*') ? '#C9AB7C' : '#8A7E6F' }};">📦 Packages</a>
                 <a href="{{ route('admin.settings') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.settings*') ? '#C9AB7C' : '#8A7E6F' }};">🔧 Gateways & Payments</a>
                 <a href="{{ route('admin.requests') }}" class="block text-xs mb-3" style="color: {{ request()->routeIs('admin.requests*') ? '#C9AB7C' : '#8A7E6F' }};">📥 Requests</a>
             @endif
