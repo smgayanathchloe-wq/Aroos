@@ -92,15 +92,17 @@ const dirty = new Set();
  * Get hall inner dimensions (accounting for border)
  */
 function getHallBounds() {
-    const rect = hall.getBoundingClientRect();
-    const computed = window.getComputedStyle(hall);
-    const borderWidth = parseFloat(computed.borderWidth) || 0;
+    // Hall has fixed dimensions: 1000px width, 640px height
+    // Border is 2px, so inner space is: 1000 - (2*2) = 996px width, 636px height
+    const style = window.getComputedStyle(hall);
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const borderRight = parseFloat(style.borderRightWidth) || 0;
+    const borderBottom = parseFloat(style.borderBottomWidth) || 0;
     
     return {
-        width: hall.offsetWidth - (borderWidth * 2),
-        height: hall.offsetHeight - (borderWidth * 2),
-        paddingLeft: parseFloat(computed.paddingLeft) || 0,
-        paddingTop: parseFloat(computed.paddingTop) || 0,
+        width: hall.clientWidth - borderLeft - borderRight,
+        height: hall.clientHeight - borderTop - borderBottom,
     };
 }
 
@@ -139,17 +141,27 @@ document.querySelectorAll('.fp-el').forEach(el => {
 
 document.addEventListener('mousemove', e => {
     if (!drag) return;
-    const hallRect = hall.getBoundingClientRect();
-    let x = e.clientX - hallRect.left - drag.dx;
-    let y = e.clientY - hallRect.top - drag.dy;
     
-    // Constrain to hall bounds
+    // Get hall position relative to viewport
+    const hallRect = hall.getBoundingClientRect();
     const bounds = getHallBounds();
     const elWidth = drag.el.offsetWidth;
     const elHeight = drag.el.offsetHeight;
     
-    x = Math.max(0, Math.min(x, bounds.width - elWidth));
-    y = Math.max(0, Math.min(y, bounds.height - elHeight));
+    // Calculate position relative to hall (accounting for border/padding)
+    let x = e.clientX - hallRect.left - drag.dx;
+    let y = e.clientY - hallRect.top - drag.dy;
+    
+    // Clamp to keep element fully within hall bounds
+    // Left edge can't be less than 0
+    x = Math.max(0, x);
+    // Right edge can't exceed bounds.width
+    x = Math.min(x, bounds.width - elWidth);
+    
+    // Top edge can't be less than 0
+    y = Math.max(0, y);
+    // Bottom edge can't exceed bounds.height
+    y = Math.min(y, bounds.height - elHeight);
     
     drag.el.style.left = x + 'px';
     drag.el.style.top = y + 'px';
