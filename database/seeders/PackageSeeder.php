@@ -57,7 +57,7 @@ class PackageSeeder extends Seeder
                 'price' => 450000,
                 'billing_cycle' => 'yearly',
                 'max_guests' => null,
-                'max_weddings' => null, // unlimited
+                'max_weddings' => 999, // unlimited (practical limit)
                 'sort_order' => 3,
                 'active' => true,
                 'features' => [

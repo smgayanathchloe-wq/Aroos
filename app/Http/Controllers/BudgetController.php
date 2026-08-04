@@ -32,6 +32,11 @@ class BudgetController extends Controller
             'spent' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ]);
+        
+        // Ensure spent defaults to 0 if not provided
+        $data['spent'] = $data['spent'] ?? 0;
+        $data['budgeted'] = $data['budgeted'] ?? 0;
+        
         $wedding->budgetCategories()->create($data);
 
         return back()->with('success', 'Category added.');
@@ -47,6 +52,11 @@ class BudgetController extends Controller
             'spent' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ]);
+        
+        // Ensure spent defaults to 0 if not provided
+        $data['spent'] = $data['spent'] ?? $category->spent;
+        $data['budgeted'] = $data['budgeted'] ?? $category->budgeted;
+        
         $category->update($data);
 
         return back()->with('success', 'Category updated.');

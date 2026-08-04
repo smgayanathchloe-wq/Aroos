@@ -23,6 +23,7 @@
                     <option value="none" @selected(($settings['sms_driver'] ?? 'none') === 'none')>None (log only)</option>
                     <option value="beem" @selected(($settings['sms_driver'] ?? '') === 'beem')>Beem Africa (Tanzania)</option>
                     <option value="twilio" @selected(($settings['sms_driver'] ?? '') === 'twilio')>Twilio</option>
+                    <option value="sprint" @selected(($settings['sms_driver'] ?? '') === 'sprint')>Sprint SMS (Tanzania)</option>
                     <option value="africastalking" @selected(($settings['sms_driver'] ?? '') === 'africastalking')>Africa's Talking</option>
                 </select>
             </div>
@@ -44,6 +45,108 @@
         <div id="cfg-africastalking" class="sms-cfg grid md:grid-cols-2 gap-4 mt-4" style="display: {{ ($settings['sms_driver'] ?? '') === 'africastalking' ? 'grid' : 'none' }};">
             <div><label class="text-xs text-muted block mb-1.5">Username</label><input name="at_username" value="{{ $settings['at_username'] }}" class="lux-input"></div>
             <div><label class="text-xs text-muted block mb-1.5">API Key {{ $settings['at_api_key'] ? '(saved)' : '' }}</label><input name="at_api_key" type="password" class="lux-input"></div>
+        </div>
+        <div id="cfg-sprint" class="sms-cfg grid md:grid-cols-2 gap-4 mt-4" style="display: {{ ($settings['sms_driver'] ?? '') === 'sprint' ? 'grid' : 'none' }};">
+            <div><label class="text-xs text-muted block mb-1.5">Sprint SMS Base URL</label><input name="sprint_base_url" value="{{ $settings['sprint_base_url'] }}" placeholder="https://api.tanzaniasms.co.tz" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">API ID</label><input name="sprint_api_id" value="{{ $settings['sprint_api_id'] }}" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">API Password {{ $settings['sprint_api_password'] ? '(saved)' : '' }}</label><input name="sprint_api_password" type="password" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">Sender ID</label><input name="sprint_sender_id" value="{{ $settings['sprint_sender_id'] }}" placeholder="PATOO" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">SMS Type</label><input name="sprint_sms_type" value="{{ $settings['sprint_sms_type'] ?? 'T' }}" placeholder="T" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">Encoding</label><input name="sprint_encoding" value="{{ $settings['sprint_encoding'] ?? 'T' }}" placeholder="T" class="lux-input"></div>
+        </div>
+    </div>
+
+    {{-- WhatsApp --}}
+    <div class="card p-6">
+        <h2 class="font-serif text-xl text-inktext mb-1">WhatsApp & Messaging</h2>
+        <p class="text-xs text-muted mb-5">Optional: Send messages via WhatsApp for better engagement.</p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="flex items-end">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" name="whatsapp_enabled" value="1" {{ ($settings['whatsapp_enabled'] ?? false) ? 'checked' : '' }} class="mr-2">
+                    <span class="text-sm text-inktext">Enable WhatsApp Messaging</span>
+                </label>
+            </div>
+            <div>
+                <label class="text-xs text-muted block mb-1.5">Provider</label>
+                <select name="whatsapp_provider" class="lux-input">
+                    <option value="twilio" @selected(($settings['whatsapp_provider'] ?? 'twilio') === 'twilio')>Twilio WhatsApp</option>
+                    <option value="clickpesa" @selected(($settings['whatsapp_provider'] ?? '') === 'clickpesa')>ClickPesa WhatsApp</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {{-- Mobile Money --}}
+    <div class="card p-6">
+        <h2 class="font-serif text-xl text-inktext mb-1">Mobile Money Payments</h2>
+        <p class="text-xs text-muted mb-5">Enable payment methods for couples to collect pledges and contributions via mobile money.</p>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-muted block mb-3 font-semibold">Available Payment Gateways</label>
+                <div class="space-y-2">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="clickpesa_enabled" value="1" {{ ($settings['clickpesa_enabled'] ?? false) ? 'checked' : '' }} class="mr-2">
+                        <span class="text-sm text-inktext">ClickPesa (Tanzania)</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="selcom_enabled" value="1" {{ ($settings['selcom_enabled'] ?? false) ? 'checked' : '' }} class="mr-2">
+                        <span class="text-sm text-inktext">Selcom (Tanzania)</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="flutterwave_enabled" value="1" {{ ($settings['flutterwave_enabled'] ?? false) ? 'checked' : '' }} class="mr-2">
+                        <span class="text-sm text-inktext">Flutterwave (Pan-Africa)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div id="clickpesa-config" style="display: {{ ($settings['clickpesa_enabled'] ?? false) ? 'block' : 'none' }};">
+                <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">ClickPesa Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div><label class="text-xs text-muted block mb-1.5">Client ID</label><input name="clickpesa_client_id" value="{{ $settings['clickpesa_client_id'] }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">API Key {{ $settings['clickpesa_api_key'] ? '(saved)' : '' }}</label><input name="clickpesa_api_key" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Checksum Key {{ $settings['clickpesa_checksum_key'] ? '(saved)' : '' }}</label><input name="clickpesa_checksum_key" type="password" class="lux-input"></div>
+                    <div>
+                        <label class="text-xs text-muted block mb-1.5">Environment</label>
+                        <select name="clickpesa_env" class="lux-input">
+                            <option value="sandbox" @selected(($settings['clickpesa_env'] ?? 'sandbox') === 'sandbox')>Sandbox</option>
+                            <option value="live" @selected(($settings['clickpesa_env'] ?? '') === 'live')>Live</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="selcom-config" style="display: {{ ($settings['selcom_enabled'] ?? false) ? 'block' : 'none' }};">
+                <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">Selcom Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div><label class="text-xs text-muted block mb-1.5">API Key</label><input name="selcom_api_key" value="{{ $settings['selcom_api_key'] }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">API Secret {{ $settings['selcom_api_secret'] ? '(saved)' : '' }}</label><input name="selcom_api_secret" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Vendor ID</label><input name="selcom_vendor" value="{{ $settings['selcom_vendor'] }}" class="lux-input"></div>
+                    <div>
+                        <label class="text-xs text-muted block mb-1.5">Environment</label>
+                        <select name="selcom_env" class="lux-input">
+                            <option value="sandbox" @selected(($settings['selcom_env'] ?? 'sandbox') === 'sandbox')>Sandbox</option>
+                            <option value="live" @selected(($settings['selcom_env'] ?? '') === 'live')>Live</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="flutterwave-config" style="display: {{ ($settings['flutterwave_enabled'] ?? false) ? 'block' : 'none' }};">
+                <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">Flutterwave Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div><label class="text-xs text-muted block mb-1.5">Public Key</label><input name="flutterwave_public_key" value="{{ $settings['flutterwave_public_key'] }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Secret Key {{ $settings['flutterwave_secret_key'] ? '(saved)' : '' }}</label><input name="flutterwave_secret_key" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Encryption Key</label><input name="flutterwave_encryption_key" type="password" class="lux-input"></div>
+                    <div>
+                        <label class="text-xs text-muted block mb-1.5">Environment</label>
+                        <select name="flutterwave_env" class="lux-input">
+                            <option value="sandbox" @selected(($settings['flutterwave_env'] ?? 'sandbox') === 'sandbox')>Sandbox</option>
+                            <option value="live" @selected(($settings['flutterwave_env'] ?? '') === 'live')>Live</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -117,4 +220,19 @@
         <button class="btn-ghost">Send test SMS</button>
     </form>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+// Handle mobile money configuration visibility
+document.querySelectorAll('input[name^="clickpesa_enabled"], input[name^="selcom_enabled"], input[name^="flutterwave_enabled"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const gateway = this.name.replace('_enabled', '');
+        const configDiv = document.getElementById(gateway + '-config');
+        if (configDiv) {
+            configDiv.style.display = this.checked ? 'block' : 'none';
+        }
+    });
+});
+</script>
 @endsection
