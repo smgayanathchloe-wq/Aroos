@@ -17,32 +17,41 @@ class InspirationController extends Controller
 
     public function store(Request $request, Wedding $wedding)
     {
-        $data = $request->validate([
-            'title' => ['nullable', 'string', 'max:255'],
-            'url' => ['nullable', 'url', 'max:2000'],
-            'notes' => ['nullable', 'string'],
-            'file' => ['nullable', 'image', 'max:15360'],
-        ]);
+        try {
+            $data = $request->validate([
+                'title' => ['nullable', 'string', 'max:255'],
+                'url' => ['nullable', 'url', 'max:2000'],
+                'notes' => ['nullable', 'string'],
+                'file' => ['nullable', 'image', 'max:15360'],
+            ]);
 
-        $type = 'note';
-        $filePath = null;
+            $type = 'note';
+            $filePath = null;
 
-        if ($request->hasFile('file')) {
-            $filePath = $request->file('file')->store('inspiration/'.$wedding->id, 'public');
-            $type = 'image';
-        } elseif (! empty($data['url'])) {
-            $type = preg_match('/youtube|vimeo|\\.mp4/i', $data['url']) ? 'video' : 'image';
+            if ($request->hasFile('file')) {
+                $storagePath = 'inspiration/'.$wedding->id;
+                // Ensure directory exists
+                \Storage::disk('public')->makeDirectory($storagePath);
+                
+                $filePath = $request->file('file')->store($storagePath, 'public');
+                $type = 'image';
+            } elseif (! empty($data['url'])) {
+                $type = preg_match('/youtube|vimeo|\\.mp4/i', $data['url']) ? 'video' : 'image';
+            }
+
+            $wedding->inspirations()->create([
+                'title' => $data['title'] ?? null,
+                'type' => $type,
+                'url' => $data['url'] ?? null,
+                'file_path' => $filePath,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            return back()->with('success', 'Inspiration added.');
+        } catch (\Exception $e) {
+            \Log::error('Inspiration upload failed: '.$e->getMessage(), ['wedding_id' => $wedding->id]);
+            return back()->withErrors(['file' => 'Upload failed: '.$e->getMessage()]);
         }
-
-        $wedding->inspirations()->create([
-            'title' => $data['title'] ?? null,
-            'type' => $type,
-            'url' => $data['url'] ?? null,
-            'file_path' => $filePath,
-            'notes' => $data['notes'] ?? null,
-        ]);
-
-        return back()->with('success', 'Inspiration added.');
     }
 
     public function destroy(Wedding $wedding, Inspiration $inspiration)

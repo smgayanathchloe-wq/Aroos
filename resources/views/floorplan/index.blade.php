@@ -105,8 +105,14 @@ document.addEventListener('mousemove', e => {
     const hallRect = hall.getBoundingClientRect();
     let x = e.clientX - hallRect.left - drag.dx;
     let y = e.clientY - hallRect.top - drag.dy;
-    x = Math.max(0, Math.min(x, hall.offsetWidth - drag.el.offsetWidth));
-    y = Math.max(0, Math.min(y, hall.offsetHeight - drag.el.offsetHeight));
+    
+    // Constrain to hall bounds - account for element size
+    const maxX = hall.offsetWidth - drag.el.offsetWidth;
+    const maxY = hall.offsetHeight - drag.el.offsetHeight;
+    
+    x = Math.max(0, Math.min(x, maxX));
+    y = Math.max(0, Math.min(y, maxY));
+    
     drag.el.style.left = x + 'px';
     drag.el.style.top = y + 'px';
     dirty.add(drag.el.dataset.id);
@@ -116,15 +122,23 @@ document.addEventListener('mouseup', () => drag = null);
 
 document.addEventListener('keydown', e => {
     if (!selected || e.target.matches('input, textarea, select')) return;
-    const w = selected.offsetWidth, h = selected.offsetHeight;
+    let w = selected.offsetWidth, h = selected.offsetHeight;
     const rot = parseFloat((selected.style.transform.match(/rotate\(([-0-9.]+)deg\)/) || [0, 0])[1]);
+    const x = parseFloat(selected.style.left);
+    const y = parseFloat(selected.style.top);
+    
     if (e.key === 'r' || e.key === 'R') {
         selected.style.transform = `rotate(${(rot + 15) % 360}deg)`;
         dirty.add(selected.dataset.id);
     } else if (e.key === '+' || e.key === '=') {
-        selected.style.width = (w * 1.1) + 'px';
-        selected.style.height = (h * 1.1) + 'px';
-        dirty.add(selected.dataset.id);
+        const newW = w * 1.1;
+        const newH = h * 1.1;
+        // Constrain resize to not exceed hall bounds
+        if (x + newW <= hall.offsetWidth && y + newH <= hall.offsetHeight) {
+            selected.style.width = newW + 'px';
+            selected.style.height = newH + 'px';
+            dirty.add(selected.dataset.id);
+        }
     } else if (e.key === '-' || e.key === '_') {
         selected.style.width = Math.max(30, w * 0.9) + 'px';
         selected.style.height = Math.max(30, h * 0.9) + 'px';

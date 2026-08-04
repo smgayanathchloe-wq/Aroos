@@ -57,31 +57,40 @@ class PhotoController extends Controller
 
     public function store(Request $request, Wedding $wedding)
     {
-        $request->validate([
-            'photos' => ['required', 'array'],
-            'photos.*' => ['image', 'max:15360'],
-            'album_id' => ['nullable', 'integer'],
-            'caption' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $albumId = $request->input('album_id');
-        if ($albumId) {
-            $album = Album::findOrFail($albumId);
-            abort_unless($album->wedding_id === $wedding->id, 404);
-        }
-
-        foreach ($request->file('photos') as $file) {
-            $path = $file->store('photos/'.$wedding->id, 'public');
-            $wedding->photos()->create([
-                'file_path' => $path,
-                'album_id' => $albumId ?: null,
-                'caption' => $request->input('caption'),
-                'uploaded_by' => $request->user()->name,
-                'source' => 'owner',
+        try {
+            $request->validate([
+                'photos' => ['required', 'array'],
+                'photos.*' => ['image', 'max:15360'],
+                'album_id' => ['nullable', 'integer'],
+                'caption' => ['nullable', 'string', 'max:255'],
             ]);
-        }
 
-        return back()->with('success', 'Photos uploaded.');
+            $albumId = $request->input('album_id');
+            if ($albumId) {
+                $album = Album::findOrFail($albumId);
+                abort_unless($album->wedding_id === $wedding->id, 404);
+            }
+
+            foreach ($request->file('photos') as $file) {
+                $storagePath = 'photos/'.$wedding->id;
+                // Ensure directory exists
+                \Storage::disk('public')->makeDirectory($storagePath);
+                
+                $path = $file->store($storagePath, 'public');
+                $wedding->photos()->create([
+                    'file_path' => $path,
+                    'album_id' => $albumId ?: null,
+                    'caption' => $request->input('caption'),
+                    'uploaded_by' => $request->user()->name,
+                    'source' => 'owner',
+                ]);
+            }
+
+            return back()->with('success', 'Photos uploaded.');
+        } catch (\Exception $e) {
+            \Log::error('Photo upload failed: '.$e->getMessage(), ['wedding_id' => $wedding->id]);
+            return back()->withErrors(['photos' => 'Upload failed: '.$e->getMessage()]);
+        }
     }
 
     public function move(Request $request, Wedding $wedding, Photo $photo)
