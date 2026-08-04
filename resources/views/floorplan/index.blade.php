@@ -89,23 +89,41 @@ let drag = null;
 const dirty = new Set();
 
 /**
- * Constrain element position to hall bounds
+ * Get hall inner dimensions (accounting for border)
  */
-function constrainPosition(el) {
-    const maxX = Math.max(0, hall.offsetWidth - el.offsetWidth);
-    const maxY = Math.max(0, hall.offsetHeight - el.offsetHeight);
+function getHallBounds() {
+    const rect = hall.getBoundingClientRect();
+    const computed = window.getComputedStyle(hall);
+    const borderWidth = parseFloat(computed.borderWidth) || 0;
+    
+    return {
+        width: hall.offsetWidth - (borderWidth * 2),
+        height: hall.offsetHeight - (borderWidth * 2),
+        paddingLeft: parseFloat(computed.paddingLeft) || 0,
+        paddingTop: parseFloat(computed.paddingTop) || 0,
+    };
+}
+
+/**
+ * Constrain element to stay completely within hall bounds
+ */
+function constrainElement(el) {
+    const bounds = getHallBounds();
     let x = parseFloat(el.style.left) || 0;
     let y = parseFloat(el.style.top) || 0;
+    const elWidth = el.offsetWidth;
+    const elHeight = el.offsetHeight;
     
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
+    // Keep element fully inside hall
+    x = Math.max(0, Math.min(x, bounds.width - elWidth));
+    y = Math.max(0, Math.min(y, bounds.height - elHeight));
     
     el.style.left = x + 'px';
     el.style.top = y + 'px';
 }
 
 // Constrain all elements on page load
-document.querySelectorAll('.fp-el').forEach(el => constrainPosition(el));
+document.querySelectorAll('.fp-el').forEach(el => constrainElement(el));
 
 document.querySelectorAll('.fp-el').forEach(el => {
     el.addEventListener('mousedown', e => {
@@ -126,11 +144,12 @@ document.addEventListener('mousemove', e => {
     let y = e.clientY - hallRect.top - drag.dy;
     
     // Constrain to hall bounds
-    const maxX = Math.max(0, hall.offsetWidth - drag.el.offsetWidth);
-    const maxY = Math.max(0, hall.offsetHeight - drag.el.offsetHeight);
+    const bounds = getHallBounds();
+    const elWidth = drag.el.offsetWidth;
+    const elHeight = drag.el.offsetHeight;
     
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
+    x = Math.max(0, Math.min(x, bounds.width - elWidth));
+    y = Math.max(0, Math.min(y, bounds.height - elHeight));
     
     drag.el.style.left = x + 'px';
     drag.el.style.top = y + 'px';
@@ -150,10 +169,11 @@ document.addEventListener('keydown', e => {
         selected.style.transform = `rotate(${(rot + 15) % 360}deg)`;
         dirty.add(selected.dataset.id);
     } else if (e.key === '+' || e.key === '=') {
+        const bounds = getHallBounds();
         const newW = w * 1.1;
         const newH = h * 1.1;
-        // Constrain resize to not exceed hall bounds
-        if (x + newW <= hall.offsetWidth && y + newH <= hall.offsetHeight) {
+        // Only resize if element stays within bounds
+        if (x + newW <= bounds.width && y + newH <= bounds.height) {
             selected.style.width = newW + 'px';
             selected.style.height = newH + 'px';
             dirty.add(selected.dataset.id);
