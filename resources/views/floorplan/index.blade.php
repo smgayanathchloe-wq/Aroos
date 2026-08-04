@@ -88,6 +88,25 @@ let selected = null;
 let drag = null;
 const dirty = new Set();
 
+/**
+ * Constrain element position to hall bounds
+ */
+function constrainPosition(el) {
+    const maxX = Math.max(0, hall.offsetWidth - el.offsetWidth);
+    const maxY = Math.max(0, hall.offsetHeight - el.offsetHeight);
+    let x = parseFloat(el.style.left) || 0;
+    let y = parseFloat(el.style.top) || 0;
+    
+    x = Math.max(0, Math.min(x, maxX));
+    y = Math.max(0, Math.min(y, maxY));
+    
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+}
+
+// Constrain all elements on page load
+document.querySelectorAll('.fp-el').forEach(el => constrainPosition(el));
+
 document.querySelectorAll('.fp-el').forEach(el => {
     el.addEventListener('mousedown', e => {
         if (e.target.closest('.del-form')) return;
@@ -106,9 +125,9 @@ document.addEventListener('mousemove', e => {
     let x = e.clientX - hallRect.left - drag.dx;
     let y = e.clientY - hallRect.top - drag.dy;
     
-    // Constrain to hall bounds - account for element size
-    const maxX = hall.offsetWidth - drag.el.offsetWidth;
-    const maxY = hall.offsetHeight - drag.el.offsetHeight;
+    // Constrain to hall bounds
+    const maxX = Math.max(0, hall.offsetWidth - drag.el.offsetWidth);
+    const maxY = Math.max(0, hall.offsetHeight - drag.el.offsetHeight);
     
     x = Math.max(0, Math.min(x, maxX));
     y = Math.max(0, Math.min(y, maxY));
@@ -124,8 +143,8 @@ document.addEventListener('keydown', e => {
     if (!selected || e.target.matches('input, textarea, select')) return;
     let w = selected.offsetWidth, h = selected.offsetHeight;
     const rot = parseFloat((selected.style.transform.match(/rotate\(([-0-9.]+)deg\)/) || [0, 0])[1]);
-    const x = parseFloat(selected.style.left);
-    const y = parseFloat(selected.style.top);
+    const x = parseFloat(selected.style.left) || 0;
+    const y = parseFloat(selected.style.top) || 0;
     
     if (e.key === 'r' || e.key === 'R') {
         selected.style.transform = `rotate(${(rot + 15) % 360}deg)`;

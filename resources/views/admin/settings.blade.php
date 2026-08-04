@@ -47,10 +47,10 @@
             <div><label class="text-xs text-muted block mb-1.5">API Key {{ $settings['at_api_key'] ? '(saved)' : '' }}</label><input name="at_api_key" type="password" class="lux-input"></div>
         </div>
         <div id="cfg-sprint" class="sms-cfg grid md:grid-cols-2 gap-4 mt-4" style="display: {{ ($settings['sms_driver'] ?? '') === 'sprint' ? 'grid' : 'none' }};">
-            <div><label class="text-xs text-muted block mb-1.5">Sprint SMS Base URL</label><input name="sprint_base_url" value="{{ $settings['sprint_base_url'] }}" placeholder="https://api.tanzaniasms.co.tz" class="lux-input"></div>
-            <div><label class="text-xs text-muted block mb-1.5">API ID</label><input name="sprint_api_id" value="{{ $settings['sprint_api_id'] }}" class="lux-input"></div>
-            <div><label class="text-xs text-muted block mb-1.5">API Password {{ $settings['sprint_api_password'] ? '(saved)' : '' }}</label><input name="sprint_api_password" type="password" class="lux-input"></div>
-            <div><label class="text-xs text-muted block mb-1.5">Sender ID</label><input name="sprint_sender_id" value="{{ $settings['sprint_sender_id'] }}" placeholder="PATOO" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">Sprint SMS Base URL</label><input name="sprint_base_url" value="{{ $settings['sprint_base_url'] ?? '' }}" placeholder="https://api.tanzaniasms.co.tz" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">API ID</label><input name="sprint_api_id" value="{{ $settings['sprint_api_id'] ?? '' }}" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">API Password {{ ($settings['sprint_api_password'] ?? '') ? '(saved)' : '' }}</label><input name="sprint_api_password" type="password" class="lux-input"></div>
+            <div><label class="text-xs text-muted block mb-1.5">Sender ID</label><input name="sprint_sender_id" value="{{ $settings['sprint_sender_id'] ?? '' }}" placeholder="PATOO" class="lux-input"></div>
             <div><label class="text-xs text-muted block mb-1.5">SMS Type</label><input name="sprint_sms_type" value="{{ $settings['sprint_sms_type'] ?? 'T' }}" placeholder="T" class="lux-input"></div>
             <div><label class="text-xs text-muted block mb-1.5">Encoding</label><input name="sprint_encoding" value="{{ $settings['sprint_encoding'] ?? 'T' }}" placeholder="T" class="lux-input"></div>
         </div>
@@ -103,9 +103,9 @@
             <div id="clickpesa-config" style="display: {{ ($settings['clickpesa_enabled'] ?? false) ? 'block' : 'none' }};">
                 <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">ClickPesa Configuration</h3>
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div><label class="text-xs text-muted block mb-1.5">Client ID</label><input name="clickpesa_client_id" value="{{ $settings['clickpesa_client_id'] }}" class="lux-input"></div>
-                    <div><label class="text-xs text-muted block mb-1.5">API Key {{ $settings['clickpesa_api_key'] ? '(saved)' : '' }}</label><input name="clickpesa_api_key" type="password" class="lux-input"></div>
-                    <div><label class="text-xs text-muted block mb-1.5">Checksum Key {{ $settings['clickpesa_checksum_key'] ? '(saved)' : '' }}</label><input name="clickpesa_checksum_key" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Client ID</label><input name="clickpesa_client_id" value="{{ $settings['clickpesa_client_id'] ?? '' }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">API Key {{ ($settings['clickpesa_api_key'] ?? '') ? '(saved)' : '' }}</label><input name="clickpesa_api_key" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Checksum Key {{ ($settings['clickpesa_checksum_key'] ?? '') ? '(saved)' : '' }}</label><input name="clickpesa_checksum_key" type="password" class="lux-input"></div>
                     <div>
                         <label class="text-xs text-muted block mb-1.5">Environment</label>
                         <select name="clickpesa_env" class="lux-input">
@@ -119,9 +119,9 @@
             <div id="selcom-config" style="display: {{ ($settings['selcom_enabled'] ?? false) ? 'block' : 'none' }};">
                 <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">Selcom Configuration</h3>
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div><label class="text-xs text-muted block mb-1.5">API Key</label><input name="selcom_api_key" value="{{ $settings['selcom_api_key'] }}" class="lux-input"></div>
-                    <div><label class="text-xs text-muted block mb-1.5">API Secret {{ $settings['selcom_api_secret'] ? '(saved)' : '' }}</label><input name="selcom_api_secret" type="password" class="lux-input"></div>
-                    <div><label class="text-xs text-muted block mb-1.5">Vendor ID</label><input name="selcom_vendor" value="{{ $settings['selcom_vendor'] }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">API Key</label><input name="selcom_api_key" value="{{ $settings['selcom_api_key'] ?? '' }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">API Secret {{ ($settings['selcom_api_secret'] ?? '') ? '(saved)' : '' }}</label><input name="selcom_api_secret" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Vendor ID</label><input name="selcom_vendor" value="{{ $settings['selcom_vendor'] ?? '' }}" class="lux-input"></div>
                     <div>
                         <label class="text-xs text-muted block mb-1.5">Environment</label>
                         <select name="selcom_env" class="lux-input">
@@ -135,8 +135,8 @@
             <div id="flutterwave-config" style="display: {{ ($settings['flutterwave_enabled'] ?? false) ? 'block' : 'none' }};">
                 <h3 class="font-semibold text-sm text-inktext mb-3 mt-4">Flutterwave Configuration</h3>
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div><label class="text-xs text-muted block mb-1.5">Public Key</label><input name="flutterwave_public_key" value="{{ $settings['flutterwave_public_key'] }}" class="lux-input"></div>
-                    <div><label class="text-xs text-muted block mb-1.5">Secret Key {{ $settings['flutterwave_secret_key'] ? '(saved)' : '' }}</label><input name="flutterwave_secret_key" type="password" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Public Key</label><input name="flutterwave_public_key" value="{{ $settings['flutterwave_public_key'] ?? '' }}" class="lux-input"></div>
+                    <div><label class="text-xs text-muted block mb-1.5">Secret Key {{ ($settings['flutterwave_secret_key'] ?? '') ? '(saved)' : '' }}</label><input name="flutterwave_secret_key" type="password" class="lux-input"></div>
                     <div><label class="text-xs text-muted block mb-1.5">Encryption Key</label><input name="flutterwave_encryption_key" type="password" class="lux-input"></div>
                     <div>
                         <label class="text-xs text-muted block mb-1.5">Environment</label>
