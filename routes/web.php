@@ -181,6 +181,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/pledges', [PledgeController::class, 'store'])->name('pledges.store');
         Route::put('/pledges/{pledge}', [PledgeController::class, 'update'])->name('pledges.update');
         Route::delete('/pledges/{pledge}', [PledgeController::class, 'destroy'])->name('pledges.destroy');
+        Route::delete('/pledges', [PledgeController::class, 'destroyAll'])->name('pledges.destroyAll');
         Route::post('/contributions', [PledgeController::class, 'storeContribution'])->name('contributions.store');
         Route::delete('/contributions/{contribution}', [PledgeController::class, 'destroyContribution'])->name('contributions.destroy');
         // Spreadsheet import (upload -> preview -> commit)

@@ -6,6 +6,7 @@ use App\Models\Contribution;
 use App\Models\Pledge;
 use App\Models\Wedding;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PledgeController extends Controller
 {
@@ -70,6 +71,51 @@ class PledgeController extends Controller
         $pledge->delete();
 
         return back()->with('success', 'Pledge removed.');
+    }
+
+    /**
+     * Delete every pledge and contribution for this wedding.
+     *
+     * This is irreversible and wipes the whole gift ledger, so it requires the
+     * user to type the confirmation phrase rather than just clicking a button.
+     * Scoped to the given wedding: other weddings are never touched.
+     */
+    public function destroyAll(Request $request, Wedding $wedding)
+    {
+        $request->validate([
+            'confirmation' => ['required', 'string'],
+        ]);
+
+        if (strtoupper(trim($request->input('confirmation'))) !== 'DELETE') {
+            return back()->withErrors([
+                'confirmation' => 'Type DELETE to confirm. Nothing was removed.',
+            ]);
+        }
+
+        $scope = $request->input('scope', 'all');
+
+        $pledgeCount = $wedding->pledges()->count();
+        $contributionCount = $wedding->contributions()->count();
+
+        DB::transaction(function () use ($wedding, $scope) {
+            // Contributions reference pledges, so they always go first to
+            // avoid leaving rows pointing at a deleted pledge.
+            $wedding->contributions()->delete();
+
+            if ($scope === 'all') {
+                $wedding->pledges()->delete();
+            }
+        });
+
+        if ($scope === 'contributions') {
+            // Pledges survive, but their paid totals just changed, so the
+            // cached status on each one is now stale.
+            $wedding->pledges()->update(['status' => 'pledged']);
+
+            return back()->with('success', "Removed {$contributionCount} contribution(s). Pledges were kept.");
+        }
+
+        return back()->with('success', "Removed {$pledgeCount} pledge(s) and {$contributionCount} contribution(s).");
     }
 
     public function printList(Wedding $wedding)

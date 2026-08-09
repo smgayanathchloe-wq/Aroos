@@ -150,4 +150,55 @@
         </tbody>
     </table>
 </div>
+
+@if($pledges->isNotEmpty() || $contributions->isNotEmpty())
+<div class="card p-6 mt-10 border-l-4 border-red-400">
+    <p class="eyebrow text-red-600 mb-2">Danger zone</p>
+    <h2 class="font-serif text-xl">Clear the gift ledger</h2>
+    <p class="text-sm text-muted mt-2 max-w-2xl">
+        Permanently removes records for <strong>{{ $wedding->partner_a }} &amp; {{ $wedding->partner_b }}</strong>.
+        This cannot be undone, so consider
+        <a href="{{ route('pledges.print', $wedding) }}" target="_blank" class="underline">printing a copy</a>
+        first. Other weddings are not affected.
+    </p>
+
+    @error('confirmation')
+        <p class="text-sm text-red-600 mt-3">{{ $message }}</p>
+    @enderror
+
+    <form method="POST"
+          action="{{ route('pledges.destroyAll', $wedding) }}"
+          class="mt-4 grid gap-3 max-w-xl"
+          onsubmit="return confirm('This permanently deletes the selected records. Continue?')">
+        @csrf @method('DELETE')
+
+        <label class="flex items-start gap-2 text-sm">
+            <input type="radio" name="scope" value="all" checked class="mt-1">
+            <span>
+                <strong>Everything</strong>
+                &mdash; {{ $pledges->count() }} pledge(s) and {{ $contributions->count() }} contribution(s)
+            </span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm">
+            <input type="radio" name="scope" value="contributions" class="mt-1">
+            <span>
+                <strong>Contributions only</strong>
+                &mdash; {{ $contributions->count() }} payment(s), keeping the {{ $pledges->count() }} pledge(s)
+            </span>
+        </label>
+
+        <div class="flex items-center gap-3 pt-1">
+            <input name="confirmation"
+                   placeholder="Type DELETE to confirm"
+                   autocomplete="off"
+                   required
+                   class="lux-input flex-1">
+            <button class="px-4 py-2 rounded bg-red-600 text-white text-sm whitespace-nowrap hover:bg-red-700">
+                Delete permanently
+            </button>
+        </div>
+    </form>
+</div>
+@endif
 @endsection
