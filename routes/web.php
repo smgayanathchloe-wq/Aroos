@@ -18,6 +18,7 @@ use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PledgeController;
+use App\Http\Controllers\PledgeImportController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
@@ -182,6 +183,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/pledges/{pledge}', [PledgeController::class, 'destroy'])->name('pledges.destroy');
         Route::post('/contributions', [PledgeController::class, 'storeContribution'])->name('contributions.store');
         Route::delete('/contributions/{contribution}', [PledgeController::class, 'destroyContribution'])->name('contributions.destroy');
+        // Spreadsheet import (upload -> preview -> commit)
+        Route::get('/pledges/import', [PledgeImportController::class, 'index'])->name('pledges.import.index');
+        Route::post('/pledges/import/preview', [PledgeImportController::class, 'preview'])->name('pledges.import.preview');
+        Route::post('/pledges/import', [PledgeImportController::class, 'store'])->name('pledges.import.store');
+        Route::get('/pledges/import/template', [PledgeImportController::class, 'template'])->name('pledges.import.template');
+
         Route::get('/pledges/print', [PledgeController::class, 'printList'])->name('pledges.print');
         Route::get('/pledges/report/print', [PledgeReportController::class, 'print'])->name('pledges.report.print');
 

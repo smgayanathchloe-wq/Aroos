@@ -3,10 +3,13 @@
 @section('title', 'Pledges & Gifts')
 
 @section('content')
-<div class="mb-8">
-    <p class="eyebrow">Michango</p>
-    <h1 class="font-serif text-3xl mt-1">Pledges & Contributions</h1>
-    <p class="text-sm text-muted mt-2 max-w-2xl">Record pledges from family and friends, track contributions as they arrive, and send reminders to anyone with an outstanding balance from the Reminders page.</p>
+<div class="mb-8 flex items-start justify-between gap-4 flex-wrap">
+    <div>
+        <p class="eyebrow">Michango</p>
+        <h1 class="font-serif text-3xl mt-1">Pledges & Contributions</h1>
+        <p class="text-sm text-muted mt-2 max-w-2xl">Record pledges from family and friends, track contributions as they arrive, and send reminders to anyone with an outstanding balance from the Reminders page.</p>
+    </div>
+    <a href="{{ route('pledges.import.index', $wedding) }}" class="btn-gold whitespace-nowrap">Import from spreadsheet</a>
 </div>
 
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
