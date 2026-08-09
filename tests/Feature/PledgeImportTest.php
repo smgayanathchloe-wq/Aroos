@@ -218,6 +218,24 @@ class PledgeImportTest extends TestCase
         $this->assertSame('pledged', $unpaid->status, 'An unpaid pledge must not read as fulfilled.');
     }
 
+    public function test_a_paid_row_is_not_marked_fulfilled_when_the_amount_is_unknown(): void
+    {
+        // Regression: when the pledged figure failed to parse, amount stayed 0
+        // and any payment made the pledge look fully settled. Six real pledges
+        // were wrongly reading as 'fulfilled' while still owing money.
+        [, $stats] = $this->importCsv(
+            "name,pledge,contribution\n".
+            "Adv. Jasper,2500000,1000000\n"
+        );
+
+        $this->assertSame(1, $stats['created']);
+
+        $pledge = Pledge::first();
+        $this->assertEquals(2500000, (float) $pledge->amount);
+        $this->assertSame('partial', $pledge->status, 'Owing 1.5m must not read as fulfilled.');
+        $this->assertEqualsWithDelta(1500000.0, $pledge->balance(), 0.01);
+    }
+
     public function test_it_skips_rows_without_a_name(): void
     {
         [$result, $stats] = $this->importCsv(
