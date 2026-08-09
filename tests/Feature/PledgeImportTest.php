@@ -286,6 +286,53 @@ class PledgeImportTest extends TestCase
         $this->assertSame(1, Pledge::count(), 'A quoted name must not duplicate on re-import.');
     }
 
+    public function test_repeated_rows_for_one_person_are_summed_not_overwritten(): void
+    {
+        // A sheet may list someone once per instalment. Each row matched the
+        // same pledge and overwrote the last, so only the final payment
+        // survived and the rest vanished with no warning.
+        [$result, $stats] = $this->importCsv(
+            "name,pledge,contribution\n".
+            "Adv. Jasper,2500000,1000000\n".
+            "Adv. Jasper,2500000,500000\n".
+            "Adv. Jasper,2500000,300000\n"
+        );
+
+        $this->assertCount(1, $result['rows'], 'The three rows describe one person.');
+        $this->assertSame(1, $stats['created']);
+        $this->assertSame(1, Pledge::count());
+
+        $pledge = Pledge::first();
+        $this->assertEquals(2500000, (float) $pledge->amount, 'The pledged total is not a sum of instalments.');
+        $this->assertEqualsWithDelta(1800000.0, $pledge->totalContributed(), 0.01, 'No payment may be lost.');
+        $this->assertSame('partial', $pledge->status);
+
+        $this->assertNotEmpty($result['errors'], 'The merge must be reported, not silent.');
+    }
+
+    public function test_repeated_rows_are_matched_by_email_before_name(): void
+    {
+        [$result] = $this->importCsv(
+            "name,email,amount,contribution\n".
+            "Asha Mwinyi,asha@example.com,500000,100000\n".
+            "A. Mwinyi,asha@example.com,500000,200000\n"
+        );
+
+        $this->assertCount(1, $result['rows'], 'Same email means the same person.');
+        $this->assertSame(300000.0, $result['rows'][0]['contribution']);
+    }
+
+    public function test_different_people_with_the_same_name_are_kept_apart_by_contact(): void
+    {
+        [$result] = $this->importCsv(
+            "name,email,amount,contribution\n".
+            "John Doe,john1@example.com,100000,50000\n".
+            "John Doe,john2@example.com,200000,60000\n"
+        );
+
+        $this->assertCount(2, $result['rows'], 'Distinct emails mean distinct people.');
+    }
+
     public function test_it_skips_rows_without_a_name(): void
     {
         [$result, $stats] = $this->importCsv(

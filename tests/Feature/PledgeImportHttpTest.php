@@ -93,6 +93,23 @@ class PledgeImportHttpTest extends TestCase
             ->assertSessionHasErrors('file');
     }
 
+    public function test_the_preview_warns_when_rows_were_merged(): void
+    {
+        [$user, $wedding] = $this->makeWedding('owner6@example.com', 'a-b-6');
+
+        $csv = "name,pledge,contribution\n"
+            ."Adv. Jasper,2500000,1000000\n"
+            ."Adv. Jasper,2500000,500000\n";
+
+        $this->actingAs($user)
+            ->post(route('pledges.import.preview', $wedding), [
+                'file' => UploadedFile::fake()->createWithContent('pledges.csv', $csv),
+            ])
+            ->assertOk()
+            // The person must be able to see that rows were combined.
+            ->assertSee('appeared on 2 rows');
+    }
+
     public function test_guests_cannot_import(): void
     {
         [, $wedding] = $this->makeWedding('owner5@example.com', 'a-b-5');

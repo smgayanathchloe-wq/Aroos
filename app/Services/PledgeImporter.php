@@ -104,7 +104,89 @@ class PledgeImporter
             $rows[] = $row;
         }
 
-        return ['rows' => $rows, 'headers' => $map, 'errors' => $errors];
+        [$rows, $mergeNotes] = $this->consolidateDuplicates($rows);
+
+        return ['rows' => $rows, 'headers' => $map, 'errors' => array_merge($errors, $mergeNotes)];
+    }
+
+    /**
+     * Combine rows that refer to the same person within one file.
+     *
+     * A sheet may list someone several times, typically one row per
+     * instalment. Each row would otherwise be matched to the same pledge and
+     * overwrite the previous one, so only the final row would survive and the
+     * earlier payments would vanish silently. Contributions are summed and the
+     * largest pledged figure is kept, since that is the total promised rather
+     * than a per-instalment amount.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array{0: array<int, array<string, mixed>>, 1: array<int, string>}
+     */
+    private function consolidateDuplicates(array $rows): array
+    {
+        $merged = [];
+        $notes = [];
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $key = $this->identityKey($row);
+
+            if (! isset($merged[$key])) {
+                $merged[$key] = $row;
+                $counts[$key] = 1;
+
+                continue;
+            }
+
+            $counts[$key]++;
+            $existing = $merged[$key];
+
+            // Payments accumulate; the pledged figure is a total, not a sum.
+            $existing['contribution'] += $row['contribution'];
+            $existing['amount'] = max($existing['amount'], $row['amount']);
+
+            // Keep whichever details the later row actually supplied.
+            foreach (['email', 'phone', 'pledge'] as $field) {
+                if ($existing[$field] === '' && $row[$field] !== '') {
+                    $existing[$field] = $row[$field];
+                }
+            }
+
+            $existing['date'] = $row['date'] ?? $existing['date'];
+
+            $merged[$key] = $existing;
+        }
+
+        foreach ($counts as $key => $count) {
+            if ($count > 1) {
+                $notes[] = sprintf(
+                    '%s appeared on %d rows; their contributions were added together (%s).',
+                    $merged[$key]['name'],
+                    $count,
+                    number_format($merged[$key]['contribution'], 2)
+                );
+            }
+        }
+
+        return [array_values($merged), $notes];
+    }
+
+    /**
+     * Identity used to spot the same person twice in one file.
+     *
+     * Mirrors findExistingPledge(): email, then phone, then name.
+     */
+    private function identityKey(array $row): string
+    {
+        if ($row['email'] !== '') {
+            return 'e:'.Str::lower($row['email']);
+        }
+
+        if ($row['phone'] !== '') {
+            return 'p:'.$row['phone'];
+        }
+
+        return 'n:'.Str::lower(trim($row['name']));
     }
 
     /**
