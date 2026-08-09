@@ -147,6 +147,68 @@ class RepairPledgeAmountsTest extends TestCase
         $this->assertEquals(0, (float) Pledge::where('wedding_id', $other->id)->first()->amount, 'Other weddings must be untouched.');
     }
 
+    public function test_commit_writes_a_backup_and_restore_undoes_it(): void
+    {
+        $wedding = $this->makeWedding('d9@example.com', 'd-9');
+        $pledge = $wedding->pledges()->create([
+            'pledger_name' => 'Adv. Jasper',
+            'amount' => 0,
+            'notes' => '2500000',
+            'status' => 'fulfilled',
+        ]);
+        $wedding->contributions()->create([
+            'pledge_id' => $pledge->id,
+            'contributor_name' => 'Adv. Jasper',
+            'amount' => 1000000,
+            'method' => 'other',
+        ]);
+
+        $this->artisan('pledges:repair-amounts --commit')->assertSuccessful();
+
+        $pledge->refresh();
+        $this->assertEquals(2500000, (float) $pledge->amount);
+        $this->assertNull($pledge->notes);
+        $this->assertSame('partial', $pledge->status);
+
+        $backups = glob(storage_path('app/pledge-backups/repair-*.json'));
+        $this->assertNotEmpty($backups, 'A backup must be written before any destructive change.');
+
+        $latest = end($backups);
+        $this->artisan('pledges:repair-amounts --restore='.basename($latest))->assertSuccessful();
+
+        // Every field must come back exactly as it was.
+        $pledge->refresh();
+        $this->assertEquals(0, (float) $pledge->amount);
+        $this->assertSame('2500000', $pledge->notes);
+        $this->assertSame('fulfilled', $pledge->status);
+
+        unlink($latest);
+    }
+
+    public function test_restore_fails_cleanly_on_a_missing_backup(): void
+    {
+        $this->artisan('pledges:repair-amounts --restore=does-not-exist.json')
+            ->expectsOutputToContain('Backup not found')
+            ->assertFailed();
+    }
+
+    public function test_a_dry_run_writes_no_backup(): void
+    {
+        $wedding = $this->makeWedding('d10@example.com', 'd-10');
+        $wedding->pledges()->create([
+            'pledger_name' => 'Asha',
+            'amount' => 0,
+            'notes' => '300000',
+            'status' => 'pledged',
+        ]);
+
+        $before = glob(storage_path('app/pledge-backups/repair-*.json')) ?: [];
+        $this->artisan('pledges:repair-amounts')->assertSuccessful();
+        $after = glob(storage_path('app/pledge-backups/repair-*.json')) ?: [];
+
+        $this->assertSameSize($before, $after, 'A dry run must not create a backup.');
+    }
+
     public function test_it_reports_when_there_is_nothing_to_do(): void
     {
         $this->makeWedding('d8@example.com', 'd-8');

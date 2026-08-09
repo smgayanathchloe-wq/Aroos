@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Pledge;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,12 +20,17 @@ class RepairPledgeAmounts extends Command
 {
     protected $signature = 'pledges:repair-amounts
                             {--wedding= : Restrict to one wedding id}
-                            {--commit : Actually write the changes}';
+                            {--commit : Actually write the changes}
+                            {--restore= : Roll back using a backup file from storage/app/pledge-backups}';
 
     protected $description = 'Move pledged figures stranded in notes back into the amount column';
 
     public function handle(): int
     {
+        if ($file = $this->option('restore')) {
+            return $this->restore($file);
+        }
+
         $query = Pledge::query()
             ->where('amount', 0)
             ->whereNotNull('notes');
@@ -65,6 +71,12 @@ class RepairPledgeAmounts extends Command
             return self::SUCCESS;
         }
 
+        // The repair clears notes, so the original figure only exists in this
+        // snapshot afterwards. Written before any change so the operation can
+        // be undone if the parsed amounts turn out to be wrong.
+        $backupPath = $this->writeBackup($candidates);
+        $this->line('Backup written to '.$backupPath);
+
         $repaired = 0;
 
         DB::transaction(function () use ($candidates, &$repaired) {
@@ -81,6 +93,75 @@ class RepairPledgeAmounts extends Command
         });
 
         $this->info("Repaired {$repaired} pledge(s).");
+        $this->line('Undo with: php artisan pledges:repair-amounts --restore='.basename($backupPath));
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Snapshot the rows about to change, so the repair is reversible.
+     *
+     * @param  Collection<int, Pledge>  $candidates
+     */
+    private function writeBackup($candidates): string
+    {
+        $payload = $candidates->map(fn (Pledge $p) => [
+            'id' => $p->id,
+            'wedding_id' => $p->wedding_id,
+            'pledger_name' => $p->pledger_name,
+            'amount' => (string) $p->amount,
+            'notes' => $p->notes,
+            'status' => $p->status,
+        ])->values()->all();
+
+        $dir = storage_path('app/pledge-backups');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $path = $dir.'/repair-'.now()->format('Ymd-His').'.json';
+        file_put_contents($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        return $path;
+    }
+
+    /** Roll the repair back from a snapshot. */
+    private function restore(string $file): int
+    {
+        $path = str_contains($file, '/') ? $file : storage_path('app/pledge-backups/'.$file);
+
+        if (! is_file($path)) {
+            $this->error('Backup not found: '.$path);
+
+            return self::FAILURE;
+        }
+
+        $rows = json_decode((string) file_get_contents($path), true);
+
+        if (! is_array($rows) || $rows === []) {
+            $this->error('Backup is empty or unreadable.');
+
+            return self::FAILURE;
+        }
+
+        $restored = 0;
+
+        DB::transaction(function () use ($rows, &$restored) {
+            foreach ($rows as $row) {
+                $pledge = Pledge::find($row['id']);
+                if (! $pledge) {
+                    continue;
+                }
+
+                $pledge->amount = $row['amount'];
+                $pledge->notes = $row['notes'];
+                $pledge->status = $row['status'];
+                $pledge->save();
+                $restored++;
+            }
+        });
+
+        $this->info("Restored {$restored} pledge(s) from ".basename($path).'.');
 
         return self::SUCCESS;
     }
