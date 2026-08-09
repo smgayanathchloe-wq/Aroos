@@ -236,6 +236,56 @@ class PledgeImportTest extends TestCase
         $this->assertEqualsWithDelta(1500000.0, $pledge->balance(), 0.01);
     }
 
+    public function test_reimport_clears_a_figure_left_stranded_in_notes(): void
+    {
+        // Simulates rows created by the older importer: amount 0, with the
+        // pledged figure sitting in notes. Re-uploading the same file must
+        // both fix the amount and tidy the leftover note.
+        $pledge = $this->wedding->pledges()->create([
+            'pledger_name' => 'Adv. Jasper',
+            'amount' => 0,
+            'notes' => '2500000',
+            'status' => 'pledged',
+        ]);
+
+        $this->importCsv("name,pledge\nAdv. Jasper,2500000\n");
+
+        $pledge->refresh();
+        $this->assertEquals(2500000, (float) $pledge->amount);
+        $this->assertNull($pledge->notes, 'The stranded figure must not linger as a note.');
+        $this->assertSame(1, Pledge::count());
+    }
+
+    public function test_reimport_keeps_a_real_note_that_is_not_a_number(): void
+    {
+        $pledge = $this->wedding->pledges()->create([
+            'pledger_name' => 'Adv. Jasper',
+            'amount' => 0,
+            'notes' => 'Paying after the harvest',
+            'status' => 'pledged',
+        ]);
+
+        $this->importCsv("name,pledge\nAdv. Jasper,2500000\n");
+
+        $pledge->refresh();
+        $this->assertEquals(2500000, (float) $pledge->amount);
+        $this->assertSame('Paying after the harvest', $pledge->notes, 'A genuine remark must survive.');
+    }
+
+    public function test_it_matches_names_containing_quotes(): void
+    {
+        // Real pledger names include nicknames in quotes. Re-importing must
+        // update them, not create a second copy.
+        $csv = "name,pledge\n".'"Mr. Victor ""Bumija"" Muze","300000"'."\n";
+
+        $this->importCsv($csv);
+        [$result, $stats] = $this->importCsv($csv);
+
+        $this->assertSame('Mr. Victor "Bumija" Muze', $result['rows'][0]['name']);
+        $this->assertSame(1, $stats['updated']);
+        $this->assertSame(1, Pledge::count(), 'A quoted name must not duplicate on re-import.');
+    }
+
     public function test_it_skips_rows_without_a_name(): void
     {
         [$result, $stats] = $this->importCsv(

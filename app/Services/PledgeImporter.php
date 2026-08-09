@@ -152,6 +152,15 @@ class PledgeImporter
                         $attributes,
                         fn ($v) => $v !== null && $v !== '' && $v !== 0.0
                     ));
+
+                    // If the amount came from the pledge column, an earlier
+                    // import may have stored that same figure as a note. Clear
+                    // it, or the row keeps a duplicate of its own amount as
+                    // stray text that no re-import would ever tidy up.
+                    if ($row['pledge'] === '' && $row['amount'] > 0 && $this->noteIsJustTheAmount($pledge)) {
+                        $pledge->notes = null;
+                    }
+
                     $pledge->save();
                     $stats['updated']++;
                 } else {
@@ -248,6 +257,24 @@ class PledgeImporter
         ]);
 
         return true;
+    }
+
+    /**
+     * Whether a pledge's note is nothing but a bare number.
+     *
+     * Used to clean up rows left by an earlier import that filed the pledged
+     * figure as a note. Deliberately strict: only a note that is purely
+     * numeric qualifies, so a real remark is never discarded.
+     */
+    private function noteIsJustTheAmount(Pledge $pledge): bool
+    {
+        $notes = trim((string) $pledge->notes);
+
+        if ($notes === '') {
+            return false;
+        }
+
+        return preg_match('/^[0-9][0-9.,\s]*$/', $notes) === 1;
     }
 
     /** Marker that identifies contributions this importer owns. */
