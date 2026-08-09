@@ -7,9 +7,9 @@
     <p class="eyebrow">Michango</p>
     <h1 class="font-serif text-3xl mt-1">Import pledges &amp; contributions</h1>
     <p class="text-sm text-muted mt-2 max-w-2xl">
-        Upload a spreadsheet to add pledges in bulk. Rows that match someone already recorded
-        will update that person instead of creating a duplicate, so you can safely re-upload a
-        corrected file.
+        Upload a spreadsheet to add pledges in bulk. Excel (.xlsx) and CSV files are both
+        accepted. Rows that match someone already recorded will update that person instead of
+        creating a duplicate, so you can safely re-upload a corrected file.
     </p>
 </div>
 
@@ -31,7 +31,7 @@
 
         <form method="POST" action="{{ route('pledges.import.preview', $wedding) }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
-            <input type="file" name="file" accept=".csv,.txt,.tsv" required class="lux-input w-full">
+            <input type="file" name="file" accept=".csv,.txt,.tsv,.xlsx" required class="lux-input w-full">
 
             <div class="text-sm text-muted">
                 <p class="mb-2">The file should have a header row containing these columns:</p>
@@ -45,7 +45,7 @@
                         </thead>
                         <tbody>
                             <tr class="border-b"><td class="py-1 pr-4 font-medium">name</td><td class="py-1">Pledger's full name <span class="text-red-500">(required)</span></td></tr>
-                            <tr class="border-b"><td class="py-1 pr-4 font-medium">pledge</td><td class="py-1">What was pledged, saved as notes</td></tr>
+                            <tr class="border-b"><td class="py-1 pr-4 font-medium">pledge</td><td class="py-1">What was pledged. If this column holds the pledged figure instead of a description, it is read as the amount.</td></tr>
                             <tr class="border-b"><td class="py-1 pr-4 font-medium">email</td><td class="py-1">Email address</td></tr>
                             <tr class="border-b"><td class="py-1 pr-4 font-medium">phone</td><td class="py-1">Phone number</td></tr>
                             <tr class="border-b"><td class="py-1 pr-4 font-medium">amount</td><td class="py-1">Amount pledged</td></tr>
@@ -54,7 +54,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="mt-3">Column order does not matter, and common alternative names (such as <em>pledger name</em>, <em>mobile</em>, or <em>paid</em>) are recognised automatically.</p>
+                <p class="mt-3">Column order does not matter, and common alternative names (such as <em>pledger name</em>, <em>mobile</em>, or <em>paid</em>) are recognised automatically. Excel (.xlsx) and CSV files both work.</p>
             </div>
 
             <div class="flex items-center gap-3 pt-2">

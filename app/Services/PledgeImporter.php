@@ -53,39 +53,33 @@ class PledgeImporter
     public function __construct(private Wedding $wedding) {}
 
     /**
-     * Parse a CSV/TSV file into normalized rows without touching the database.
+     * Parse a spreadsheet (.csv, .tsv or .xlsx) into normalized rows without
+     * touching the database.
      *
      * @return array{rows: array<int, array<string, mixed>>, headers: array<string, string|null>, errors: array<int, string>}
      */
     public function preview(string $path): array
     {
-        $handle = fopen($path, 'r');
-        if ($handle === false) {
-            return ['rows' => [], 'headers' => [], 'errors' => ['Could not open the uploaded file.']];
+        try {
+            $raw = XlsxReader::looksLikeXlsx($path)
+                ? (new XlsxReader)->toRows($path)
+                : $this->readDelimited($path);
+        } catch (\Throwable $e) {
+            return ['rows' => [], 'headers' => [], 'errors' => ['Could not read the file: '.$e->getMessage()]];
         }
 
-        // Strip a UTF-8 BOM if Excel added one, otherwise the first header
-        // never matches its alias and the whole file looks unmapped.
-        $bom = fread($handle, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($handle);
-        }
-
-        $delimiter = $this->detectDelimiter($path);
-
-        $headerRow = fgetcsv($handle, 0, $delimiter);
-        if ($headerRow === false || $headerRow === null) {
-            fclose($handle);
-
+        if ($raw === []) {
             return ['rows' => [], 'headers' => [], 'errors' => ['The file appears to be empty.']];
         }
 
+        $headerRow = array_shift($raw);
         $map = $this->mapHeaders($headerRow);
+
         $rows = [];
         $errors = [];
         $lineNumber = 1;
 
-        while (($raw = fgetcsv($handle, 0, $delimiter)) !== false) {
+        foreach ($raw as $line) {
             $lineNumber++;
 
             if (count($rows) >= self::MAX_ROWS) {
@@ -93,12 +87,13 @@ class PledgeImporter
                 break;
             }
 
-            // Skip completely blank lines, which trailing newlines produce.
-            if ($raw === [null] || count(array_filter($raw, fn ($v) => trim((string) $v) !== '')) === 0) {
+            // Skip blank lines, which trailing newlines and spare spreadsheet
+            // rows both produce.
+            if (count(array_filter($line, fn ($v) => trim((string) $v) !== '')) === 0) {
                 continue;
             }
 
-            $row = $this->normalizeRow($raw, $map, $lineNumber);
+            $row = $this->normalizeRow($line, $map, $lineNumber);
 
             if ($row['name'] === '') {
                 $errors[] = "Row {$lineNumber}: skipped, no name.";
@@ -109,9 +104,43 @@ class PledgeImporter
             $rows[] = $row;
         }
 
+        return ['rows' => $rows, 'headers' => $map, 'errors' => $errors];
+    }
+
+    /**
+     * Read a delimited text file into raw rows.
+     *
+     * @return array<int, array<int, string>>
+     */
+    private function readDelimited(string $path): array
+    {
+        $handle = fopen($path, 'r');
+
+        if ($handle === false) {
+            throw new \RuntimeException('could not open the uploaded file');
+        }
+
+        // Strip a UTF-8 BOM if Excel added one, otherwise the first header
+        // never matches its alias and the whole file looks unmapped.
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        $delimiter = $this->detectDelimiter($path);
+        $rows = [];
+
+        while (($line = fgetcsv($handle, 0, $delimiter)) !== false) {
+            if ($line === [null]) {
+                continue;
+            }
+
+            $rows[] = array_map(fn ($v) => (string) $v, $line);
+        }
+
         fclose($handle);
 
-        return ['rows' => $rows, 'headers' => $map, 'errors' => $errors];
+        return $rows;
     }
 
     /**

@@ -28,9 +28,9 @@ class PledgeImportController extends Controller
     public function preview(Request $request, Wedding $wedding)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt,tsv', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:csv,txt,tsv,xlsx', 'max:5120'],
         ], [
-            'file.mimes' => 'Please upload a CSV file. In Excel or Google Sheets choose File > Save as / Download > CSV.',
+            'file.mimes' => 'Please upload a CSV or Excel (.xlsx) file. Older .xls files must be saved as .xlsx or CSV first.',
         ]);
 
         $importer = new PledgeImporter($wedding);
