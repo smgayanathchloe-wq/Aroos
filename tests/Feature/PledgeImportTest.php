@@ -154,6 +154,70 @@ class PledgeImportTest extends TestCase
         $this->assertSame(100000.0, $row['contribution']);
     }
 
+    public function test_a_numeric_pledge_column_is_read_as_the_amount(): void
+    {
+        // Real sheets often put the figure in the "pledge" column and have no
+        // separate amount column at all. Without this, every pledge imports
+        // as zero and the money ends up stranded in the notes field.
+        [$result, $stats] = $this->importCsv(
+            "name,pledge\n".
+            "Mr & Mrs Harry Sabuni,\"1,500,000\"\n".
+            "Ms. Natasha Sabuni,150000\n"
+        );
+
+        $this->assertSame(1500000.0, $result['rows'][0]['amount']);
+        $this->assertSame('', $result['rows'][0]['pledge'], 'The figure must not also be kept as a note.');
+        $this->assertSame(2, $stats['created']);
+
+        $pledge = Pledge::where('pledger_name', 'Mr & Mrs Harry Sabuni')->first();
+        $this->assertEquals(1500000, (float) $pledge->amount);
+        $this->assertNull($pledge->notes);
+    }
+
+    public function test_a_descriptive_pledge_column_is_still_kept_as_notes(): void
+    {
+        [$result] = $this->importCsv(
+            "name,pledge,amount\n".
+            "Asha,Sofa set,500000\n"
+        );
+
+        $this->assertSame('Sofa set', $result['rows'][0]['pledge']);
+        $this->assertSame(500000.0, $result['rows'][0]['amount']);
+    }
+
+    public function test_an_explicit_amount_column_wins_over_the_pledge_column(): void
+    {
+        [$result] = $this->importCsv(
+            "name,pledge,amount\n".
+            "Asha,999,500000\n"
+        );
+
+        $this->assertSame(500000.0, $result['rows'][0]['amount'], 'A real amount column must take precedence.');
+        $this->assertSame('999', $result['rows'][0]['pledge']);
+    }
+
+    public function test_it_imports_the_users_real_sheet_shape(): void
+    {
+        // Mirrors the layout actually seen in the database: names, the pledged
+        // figure under "pledge", and only some rows paid.
+        [, $stats] = $this->importCsv(
+            "name,pledge,contribution\n".
+            "Adv. Jasper,1000000,1000000\n".
+            "Mr. & Mrs. Stephen Mgaya,50000,50000\n".
+            "Mr & Mrs Harry Sabuni,1500000,\n"
+        );
+
+        $this->assertSame(3, $stats['created']);
+
+        $paid = Pledge::where('pledger_name', 'Adv. Jasper')->first();
+        $this->assertEquals(1000000, (float) $paid->amount);
+        $this->assertSame('fulfilled', $paid->status);
+
+        $unpaid = Pledge::where('pledger_name', 'Mr & Mrs Harry Sabuni')->first();
+        $this->assertEquals(1500000, (float) $unpaid->amount);
+        $this->assertSame('pledged', $unpaid->status, 'An unpaid pledge must not read as fulfilled.');
+    }
+
     public function test_it_skips_rows_without_a_name(): void
     {
         [$result, $stats] = $this->importCsv(

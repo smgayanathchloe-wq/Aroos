@@ -292,16 +292,50 @@ class PledgeImporter
             return trim((string) $raw[$index]);
         };
 
+        $pledgeValue = $get('pledge');
+        $amount = $this->parseMoney($get('amount'));
+
+        // Many real sheets use the "pledge" column for the pledged *figure*
+        // rather than a description ("Pledge: 500,000"). When there is no
+        // separate amount, treat a numeric pledge column as the amount, or
+        // the money is silently filed away as a text note and the pledge is
+        // recorded as zero.
+        $pledgeIsNumeric = $pledgeValue !== '' && $this->looksLikeMoney($pledgeValue);
+
+        if ($amount === 0.0 && $pledgeIsNumeric) {
+            $amount = $this->parseMoney($pledgeValue);
+            $pledgeValue = '';
+        }
+
         return [
             'line' => $lineNumber,
             'name' => $get('name'),
-            'pledge' => $get('pledge'),
+            'pledge' => $pledgeValue,
             'email' => filter_var($get('email'), FILTER_VALIDATE_EMAIL) ? $get('email') : '',
             'phone' => $this->normalizePhone($get('phone')),
-            'amount' => $this->parseMoney($get('amount')),
+            'amount' => $amount,
             'contribution' => $this->parseMoney($get('contribution')),
             'date' => $this->parseDate($get('date')),
         ];
+    }
+
+    /**
+     * Whether a value is a bare monetary figure rather than prose.
+     *
+     * "500,000" and "TZS 1,500.50" qualify; "Cash gift" and "Sofa set x2" do
+     * not. Requires at least one digit and no substantial run of letters, so
+     * a description that merely mentions a number is not mistaken for one.
+     */
+    private function looksLikeMoney(string $value): bool
+    {
+        if (! preg_match('/\d/', $value)) {
+            return false;
+        }
+
+        // Allow a short currency code (TZS, USD, /=) but reject real words.
+        $letters = preg_replace('/[^a-z]/i', '', $value) ?? '';
+
+        return strlen($letters) <= 3;
     }
 
     /**
