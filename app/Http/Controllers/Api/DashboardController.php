@@ -7,6 +7,8 @@ use App\Models\ChecklistTask;
 use App\Models\Contribution;
 use App\Models\Guest;
 use App\Models\Pledge;
+use App\Models\Reminder;
+use App\Models\ReminderLog;
 use App\Models\TimelineEvent;
 use App\Models\Vendor;
 use App\Models\Wedding;
@@ -240,5 +242,82 @@ class DashboardController extends ApiController
         }
 
         return $series;
+    }
+
+    /**
+     * The summary the web shows at weddings/{wedding}/report.
+     *
+     * Mirrors ReportController exactly so the two never disagree: a
+     * couple reading the phone and a planner reading the laptop must see
+     * the same numbers.
+     */
+    public function report(Request $request): JsonResponse
+    {
+        $wedding = $this->wedding($request);
+
+        $guests = Guest::where('wedding_id', $wedding->id)->get();
+        $categories = BudgetCategory::where('wedding_id', $wedding->id)->get();
+        $pledges = Pledge::where('wedding_id', $wedding->id)->get();
+        $contributions = Contribution::whereIn('pledge_id', $pledges->pluck('id'))->get();
+        $vendors = Vendor::where('wedding_id', $wedding->id)->get();
+        $tasks = ChecklistTask::whereIn(
+            'checklist_phase_id',
+            DB::table('checklist_phases')->where('wedding_id', $wedding->id)->pluck('id')
+        )->get();
+
+        $logs = ReminderLog::whereIn(
+            'reminder_id',
+            Reminder::where('wedding_id', $wedding->id)->pluck('id')
+        )->get();
+
+        $spent = (float) $categories->sum('spent');
+        $collected = (float) $contributions->sum('amount');
+
+        return $this->ok([
+            'wedding' => [
+                'couple' => trim($wedding->partner_a . ' & ' . $wedding->partner_b),
+                'wedding_date' => optional($wedding->wedding_date)->toDateString(),
+                'venue_name' => $wedding->venue_name,
+                'currency' => $wedding->currency ?: 'TZS',
+            ],
+            'guests' => [
+                'parties' => $guests->count(),
+                'people' => (int) $guests->sum('party_count'),
+                'attending' => (int) $guests->where('rsvp_status', 'attending')->sum('party_count'),
+                'declined' => $guests->where('rsvp_status', 'declined')->count(),
+                'pending' => $guests->where('rsvp_status', 'pending')->count(),
+                'checked_in' => $guests->whereNotNull('checked_in_at')->count(),
+                'checked_in_people' => (int) $guests->sum('checked_in_count'),
+            ],
+            'budget' => [
+                'total' => (float) $wedding->total_budget,
+                'allocated' => (float) $categories->sum('budgeted'),
+                'spent' => $spent,
+                'remaining' => (float) $wedding->total_budget - $spent,
+            ],
+            'pledges' => [
+                'count' => $pledges->count(),
+                'pledged' => (float) $pledges->sum('amount'),
+                'collected' => $collected,
+                'fulfilled' => $pledges->where('status', 'fulfilled')->count(),
+                'outstanding_amount' => (float) $pledges
+                    ->whereIn('status', ['pledged', 'partial'])
+                    ->sum(fn ($p) => $p->balance()),
+            ],
+            'vendors' => [
+                'count' => $vendors->count(),
+                'booked' => $vendors->where('status', 'booked')->count(),
+                'cost' => (float) $vendors->where('status', 'booked')->sum('price_estimate'),
+                'paid' => (float) $vendors->sum('amount_paid'),
+            ],
+            'tasks' => [
+                'total' => $tasks->count(),
+                'done' => $tasks->where('completed', true)->count(),
+            ],
+            'messages' => [
+                'sent' => $logs->where('status', 'sent')->count(),
+                'failed' => $logs->where('status', 'failed')->count(),
+            ],
+        ]);
     }
 }

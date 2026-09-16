@@ -11,6 +11,7 @@ use App\Models\SeatingTable;
 use App\Models\TimelineEvent;
 use App\Models\Vendor;
 use Carbon\Carbon;
+use App\Models\Collaborator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -427,5 +428,46 @@ class PlanningController extends ApiController
             'notes' => $e->notes,
             'public' => (bool) $e->public,
         ];
+    }
+
+    /**
+     * Who else can see or change this wedding.
+     *
+     * The web shows this at weddings/{wedding}/collaborators. Useful on a
+     * phone mainly to answer "who do I call about the seating chart".
+     * Tokens are never exposed: an invite link is a credential.
+     */
+    public function collaborators(Request $request): JsonResponse
+    {
+        $wedding = $this->wedding($request);
+
+        $rows = Collaborator::where('wedding_id', $wedding->id)
+            ->with('user')
+            ->orderBy('role')
+            ->get();
+
+        $owner = $wedding->user;
+
+        $people = $rows->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->user?->name ?? $c->email,
+            'email' => $c->email ?: $c->user?->email,
+            'role' => $c->role,
+            'status' => $c->status,
+            'is_owner' => false,
+        ])->values()->all();
+
+        if ($owner) {
+            array_unshift($people, [
+                'id' => 0,
+                'name' => $owner->name,
+                'email' => $owner->email,
+                'role' => 'owner',
+                'status' => 'active',
+                'is_owner' => true,
+            ]);
+        }
+
+        return $this->ok($people);
     }
 }

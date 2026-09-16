@@ -217,4 +217,52 @@ class GuestController extends ApiController
             'notes' => $guest->notes,
         ];
     }
+
+    /**
+     * Door mode: the whole guest list with check-in counters, mirroring
+     * the web's checkin.index screen.
+     *
+     * Deliberately unpaginated. On the door you want every guest
+     * searchable instantly, without fetching more pages as people queue.
+     */
+    public function checkInBoard(Request $request): JsonResponse
+    {
+        $query = Guest::query()->with('seatingTable');
+        $this->scoped($request, $query);
+
+        $guests = $query->orderBy('first_name')->orderBy('last_name')->get();
+
+        return $this->ok([
+            'stats' => [
+                'total_parties' => $guests->count(),
+                'total_people' => (int) $guests->sum('party_count'),
+                'attending' => (int) $guests->where('rsvp_status', 'attending')->sum('party_count'),
+                'checked_in_parties' => $guests->whereNotNull('checked_in_at')->count(),
+                'checked_in_people' => (int) $guests->sum('checked_in_count'),
+            ],
+            'guests' => $guests->map(fn ($g) => $this->transform($g))->values()->all(),
+        ]);
+    }
+
+    /**
+     * Resolve the QR code on a printed invitation.
+     *
+     * The web scans these at w/{slug}/checkin/{token}; this is the same
+     * lookup for a phone camera. Read-only: confirming is a separate
+     * call so a scan can be reviewed before it counts anybody in.
+     */
+    public function findByToken(Request $request, string $token): JsonResponse
+    {
+        $query = Guest::query()->with('seatingTable');
+        $this->scoped($request, $query);
+
+        $guest = $query->where('checkin_token', $token)->first()
+            ?: (clone $query)->where('invite_token', $token)->first();
+
+        if (! $guest) {
+            return $this->fail('That code does not match a guest for this wedding.', 404);
+        }
+
+        return $this->ok($this->transform($guest));
+    }
 }

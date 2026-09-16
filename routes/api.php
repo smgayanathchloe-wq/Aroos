@@ -41,9 +41,14 @@ Route::prefix('v1')->group(function () {
 
         // Home
         Route::get('dashboard', [DashboardController::class, 'index']);
+        Route::get('report', [DashboardController::class, 'report']);
 
         // Guests, RSVP and check-in
         Route::get('guests/summary', [GuestController::class, 'summary']);
+        // Door mode and QR scanning. Declared before guests/{id} so the
+        // literal segments are not swallowed by the numeric route.
+        Route::get('guests/checkin-board', [GuestController::class, 'checkInBoard']);
+        Route::get('guests/by-token/{token}', [GuestController::class, 'findByToken']);
         Route::get('guests', [GuestController::class, 'index']);
         Route::post('guests', [GuestController::class, 'store']);
         Route::get('guests/{id}', [GuestController::class, 'show'])->whereNumber('id');
@@ -92,6 +97,7 @@ Route::prefix('v1')->group(function () {
         Route::post('seating/assign', [PlanningController::class, 'assignSeat']);
 
         Route::get('crew', [PlanningController::class, 'crew']);
+        Route::get('collaborators', [PlanningController::class, 'collaborators']);
 
         // Messaging: SMS and email, through the same service the web uses.
         Route::get('reminders/channels', [ReminderController::class, 'channels']);
