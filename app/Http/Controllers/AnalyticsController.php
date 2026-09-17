@@ -25,20 +25,26 @@ class AnalyticsController extends Controller
             ->latest()
             ->get();
 
-        $activeSubscriptions = $subscriptions->where('expires_at', null)
-            ->orWhere('expires_at', '>', now())
+        // A subscription counts as active when it never expires, or has
+        // not expired yet. This filters the collection in memory, so it
+        // must use a closure: orWhere() only exists on a query builder.
+        $activeSubscriptions = $subscriptions
+            ->filter(fn ($s) => $s->expires_at === null || $s->expires_at > now())
             ->count();
 
         $packageStats = Package::with('subscriptions')
             ->get()
-            ->map(function($pkg) {
+            ->map(function ($pkg) {
+                $active = $pkg->subscriptions->where('status', 'active');
+
                 return [
                     'name' => $pkg->name,
                     'price' => $pkg->price,
-                    'subscriptions' => $pkg->subscriptions()->where('status', 'active')->count(),
-                    'revenue' => $pkg->subscriptions()
-                        ->where('status', 'active')
-                        ->sum('created_at'), // simplified for now
+                    'subscriptions' => $active->count(),
+                    // Revenue is the package price for each active
+                    // subscription. The previous version summed
+                    // created_at, which added timestamps together.
+                    'revenue' => $active->count() * (float) $pkg->price,
                 ];
             });
 
@@ -46,7 +52,7 @@ class AnalyticsController extends Controller
         $totalRevenue = WeddingSubscription::where('status', 'active')
             ->with('package')
             ->get()
-            ->sum(fn($s) => $s->package->price);
+            ->sum(fn ($s) => (float) ($s->package->price ?? 0));
 
         // Most recent weddings
         $recentWeddings = Wedding::with('user', 'websiteSetting')

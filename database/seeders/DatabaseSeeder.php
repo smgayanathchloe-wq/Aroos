@@ -2,28 +2,28 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Brings a fresh database to a usable state.
+ *
+ * Production-safe by default. It seeds only the reference data the app
+ * needs to work (packages) plus a bootstrap admin taken from the
+ * environment.
+ *
+ * The demo wedding and its sample users are NOT seeded here: they carry
+ * known passwords and fictional data that should never appear on a live
+ * site. Seed them explicitly in a test environment:
+ *
+ *   php artisan db:seed --class=RoleUsersSeeder
+ */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
         $this->call([
             PackageSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }
