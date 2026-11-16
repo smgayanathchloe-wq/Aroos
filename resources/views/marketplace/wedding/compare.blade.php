@@ -29,6 +29,7 @@
                 'Extras' => fn ($e) => collect(($latest($e)?->package ?? $e->package)?->extras ?? [])->map(fn ($x) => $x['name'].($x['price'] !== null ? ' ('.Money::format($x['price']).')' : ''))->join(', ') ?: '—',
                 'Location' => fn ($e) => $e->provider->region?->name ?? '—',
                 'Terms' => fn ($e) => $latest($e)?->terms ?: (($latest($e)?->package ?? $e->package)?->terms ?: '—'),
+                'Reviews' => fn ($e) => $e->provider->rating_count ? '★ '.number_format((float) $e->provider->rating_avg, 1).' from '.$e->provider->rating_count.' review(s)' : 'No reviews yet',
                 'Verified' => fn ($e) => $e->provider->verification_status === 'verified' ? '✔ Verified by Aroos' : 'Not verified',
                 'Status' => fn ($e) => str_replace('_', ' ', $e->status),
             ];
@@ -41,6 +42,6 @@
         </tbody>
     </table>
 </div>
-<p class="text-xs text-muted mt-3">Reviews will appear here once providers have completed bookings on Aroos.</p>
+<p class="text-xs text-muted mt-3">Compare what is included, terms and reviews — not just the price.</p>
 @endif
 @endsection

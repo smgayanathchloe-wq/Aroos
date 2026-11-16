@@ -9,7 +9,10 @@
         <h1 class="font-serif text-3xl mt-1">Find wedding service providers</h1>
         <p class="text-sm text-muted mt-2">Verified professionals only. Send a request from any provider's profile to get a quotation.</p>
     </div>
-    <a href="{{ route('marketplace.favourites') }}" class="btn-ghost">♥ Saved providers</a>
+    <div class="flex gap-2">
+        <a href="{{ route('marketplace.assistant') }}" class="btn-gold">✨ Plan my services</a>
+        <a href="{{ route('marketplace.favourites') }}" class="btn-ghost">♥ Saved providers</a>
+    </div>
 </div>
 
 <form method="GET" action="{{ route('marketplace.index') }}" class="card p-4 mb-8 grid gap-3 md:grid-cols-6" role="search">
@@ -24,7 +27,7 @@
     </select>
     <input type="date" name="date" value="{{ $filters['date'] ?? '' }}" class="lux-input" aria-label="Event date" title="Hide providers unavailable on this date">
     <button class="btn-gold">Search</button>
-    <details class="md:col-span-6" @if(collect($filters)->only(['min_price','max_price','pricing','has_packages','has_portfolio','multi_service','sort'])->filter()->isNotEmpty()) open @endif>
+    <details class="md:col-span-6" @if(collect($filters)->only(['min_price','max_price','pricing','has_packages','has_portfolio','multi_service','min_rating','sort'])->filter()->isNotEmpty()) open @endif>
         <summary class="text-xs text-muted cursor-pointer">More filters</summary>
         <div class="grid gap-3 md:grid-cols-6 mt-3 items-center">
             <input type="number" name="min_price" value="{{ $filters['min_price'] ?? '' }}" placeholder="Min price" class="lux-input" min="0" aria-label="Minimum price">
@@ -32,6 +35,10 @@
             <select name="pricing" class="lux-input" aria-label="Pricing">
                 <option value="">Any pricing</option>
                 @foreach(\App\Models\Marketplace\ProviderService::PRICING as $v => $l)<option value="{{ $v }}" @selected(($filters['pricing'] ?? null) === $v)>{{ $l }}</option>@endforeach
+            </select>
+            <select name="min_rating" class="lux-input" aria-label="Minimum rating">
+                <option value="">Any rating</option>
+                @foreach([4, 3] as $r)<option value="{{ $r }}" @selected(($filters['min_rating'] ?? null) == $r)>{{ $r }}★ and up</option>@endforeach
             </select>
             <select name="sort" class="lux-input" aria-label="Sort">
                 @foreach($sorts as $v => $l)<option value="{{ $v }}" @selected(($filters['sort'] ?? 'recommended') === $v)>{{ $l }}</option>@endforeach
@@ -49,6 +56,12 @@
     <div class="flex items-center justify-between mb-4">
         <p class="text-sm text-muted">{{ $results->total() }} provider{{ $results->total() === 1 ? '' : 's' }} found · <a href="{{ route('marketplace.index') }}" class="underline">Clear</a></p>
     </div>
+    @if($sponsored->isNotEmpty())
+        <p class="text-[11px] uppercase tracking-wide text-muted mb-2">Sponsored — paid placement, not a ranking or endorsement</p>
+        <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+            @foreach($sponsored as $p)@include('marketplace._card', ['p' => $p, 'favourite' => in_array($p->id, $favouriteIds, true)])@endforeach
+        </div>
+    @endif
     @if($results->isEmpty())
         <div class="card p-10 text-center text-muted">No providers match yet. Try another region or fewer filters.</div>
     @else

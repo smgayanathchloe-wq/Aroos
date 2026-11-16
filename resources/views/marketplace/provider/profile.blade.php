@@ -13,8 +13,8 @@
         <label class="text-xs text-muted">Type
             <select name="business_type" class="lux-input mt-1">@foreach(['individual' => 'Individual', 'company' => 'Registered company'] as $v => $l)<option value="{{ $v }}" @selected(old('business_type', $provider->business_type) === $v)>{{ $l }}</option>@endforeach</select>
         </label>
-        <label class="text-xs text-muted md:col-span-2">Description
-            <textarea name="description" rows="6" class="lux-input mt-1" placeholder="Who you are, your style, what makes your service special…">{{ old('description', $provider->description) }}</textarea>
+        <label class="text-xs text-muted md:col-span-2"><span class="flex justify-between">Description @include('marketplace.provider._assist', ['kind' => 'business_description', 'target' => 'f-description'])</span>
+            <textarea id="f-description" name="description" rows="6" class="lux-input mt-1" placeholder="Who you are, your style, what makes your service special…">{{ old('description', $provider->description) }}</textarea>
         </label>
         <label class="text-xs text-muted">Main category *
             <select name="primary_category_id" class="lux-input mt-1">@foreach($categories->whereNull('parent_id') as $c)<option value="{{ $c->id }}" @selected(old('primary_category_id', $provider->primary_category_id) == $c->id)>{{ $c->name }}</option>@endforeach</select>

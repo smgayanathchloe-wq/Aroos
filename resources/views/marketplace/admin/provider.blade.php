@@ -73,6 +73,12 @@
             <input name="reason" placeholder="Reason (required to reject; sent to provider)" class="lux-input" aria-label="Reason">
             <button class="btn-gold w-full">Save decision</button>
         </form>
+        <form method="POST" action="{{ route('admin.marketplace.sponsorship', $provider) }}" class="card p-5 space-y-2">@csrf
+            <p class="eyebrow">Sponsored placement</p>
+            <p class="text-xs text-muted">Shown in a separate row labelled “Sponsored”. Does not affect verification or the organic ranking.{{ $provider->isSponsoredNow() ? ' Running until '.$provider->featured_until->format('j M Y').'.' : '' }}</p>
+            <input type="date" name="featured_until" value="{{ $provider->featured_until?->toDateString() }}" min="{{ today()->addDay()->toDateString() }}" class="lux-input" aria-label="Sponsored until">
+            <button class="btn-ghost w-full">{{ $provider->isSponsoredNow() ? 'Update (clear date to stop)' : 'Start sponsorship' }}</button>
+        </form>
         @if($provider->isBanned())
             <form method="POST" action="{{ route('admin.marketplace.unban', $provider) }}" class="card p-5">@csrf
                 <p class="text-sm mb-2">Banned: {{ $provider->ban_reason }}</p>

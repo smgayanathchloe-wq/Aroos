@@ -53,6 +53,13 @@ class User extends Authenticatable
     /** The service provider business this user owns or works for, if any. */
     public function providerProfile(): ?\App\Models\Marketplace\ProviderProfile
     {
+        // Staff invited by email before they had an account join on first visit.
+        if ($this->email) {
+            \App\Models\Marketplace\ProviderMember::whereNull('user_id')->where('status', 'invited')
+                ->where('email', strtolower($this->email))
+                ->update(['user_id' => $this->id, 'status' => 'active', 'updated_at' => now()]);
+        }
+
         $membership = $this->providerMemberships()->with('provider.members')->orderByRaw("role = 'owner' desc")->first();
 
         return $membership?->provider;

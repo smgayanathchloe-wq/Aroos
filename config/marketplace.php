@@ -23,4 +23,20 @@ return [
         'x' => ['x.com', 'twitter.com'],
     ],
     'video_link_hosts' => ['instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be'],
+
+    /*
+    | Optional AI help (request assistant, provider writing help). The
+    | marketplace works fully without it. Uses the same pluggable LLM layer as
+    | outreach; keys come from config/outreach.php (ANTHROPIC_API_KEY etc.).
+    */
+    'ai' => [
+        'enabled' => (bool) env('MARKETPLACE_AI_ENABLED', false),
+        'provider' => env('MARKETPLACE_AI_PROVIDER', 'anthropic'), // anthropic, openai, azure_openai, self_hosted
+        'model' => env('MARKETPLACE_AI_MODEL', 'claude-opus-5-5'),
+        'base_url' => env('MARKETPLACE_AI_BASE_URL'),
+        'temperature' => 0.4,
+    ],
+
+    // Minimum data points before the budget assistant shows a price range.
+    'budget_min_samples' => 3,
 ];

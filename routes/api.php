@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GuestController;
+use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\PlanningController;
 use App\Http\Controllers\Api\ReminderController;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +43,38 @@ Route::prefix('v1')->group(function () {
         // Home
         Route::get('dashboard', [DashboardController::class, 'index']);
         Route::get('report', [DashboardController::class, 'report']);
+
+        // Marketplace. Wedding side uses X-Wedding-Id (read access suffices, so
+        // couples can act); provider side uses the caller's own business.
+        Route::prefix('marketplace')->group(function () {
+            Route::get('categories', [MarketplaceController::class, 'categories']);
+            Route::get('regions', [MarketplaceController::class, 'regions']);
+            Route::get('providers', [MarketplaceController::class, 'providers']);
+            Route::get('providers/{slug}', [MarketplaceController::class, 'provider']);
+            Route::post('providers/{slug}/favourite', [MarketplaceController::class, 'favourite']);
+            Route::post('providers/{slug}/requests', [MarketplaceController::class, 'createRequest'])->middleware('throttle:20,60');
+            Route::get('favourites', [MarketplaceController::class, 'favourites']);
+
+            Route::get('requests', [MarketplaceController::class, 'requests']);
+            Route::get('requests/{id}', [MarketplaceController::class, 'showRequest'])->whereNumber('id');
+            Route::post('requests/{id}/counter', [MarketplaceController::class, 'counter'])->whereNumber('id');
+            Route::post('requests/{id}/accept', [MarketplaceController::class, 'accept'])->whereNumber('id');
+            Route::post('requests/{id}/message', [MarketplaceController::class, 'message'])->whereNumber('id');
+            Route::post('requests/{id}/withdraw', [MarketplaceController::class, 'withdraw'])->whereNumber('id');
+            Route::get('bookings', [MarketplaceController::class, 'weddingBookings']);
+            Route::post('bookings/{id}/cancel', [MarketplaceController::class, 'cancelWeddingBooking'])->whereNumber('id');
+            Route::post('bookings/{id}/review', [MarketplaceController::class, 'review'])->whereNumber('id');
+
+            Route::get('business', [MarketplaceController::class, 'business']);
+            Route::get('business/requests', [MarketplaceController::class, 'businessRequests']);
+            Route::get('business/requests/{id}', [MarketplaceController::class, 'businessRequest'])->whereNumber('id');
+            Route::post('business/requests/{id}/quote', [MarketplaceController::class, 'quote'])->whereNumber('id');
+            Route::post('business/requests/{id}/message', [MarketplaceController::class, 'providerMessage'])->whereNumber('id');
+            Route::post('business/requests/{id}/decline', [MarketplaceController::class, 'decline'])->whereNumber('id');
+            Route::get('business/bookings', [MarketplaceController::class, 'businessBookings']);
+            Route::post('business/bookings/{id}/{action}', [MarketplaceController::class, 'businessBookingAction'])->whereNumber('id')->whereIn('action', ['complete', 'cancel']);
+            Route::get('business/calendar', [MarketplaceController::class, 'calendar']);
+        });
 
         // Guests, RSVP and check-in
         Route::get('guests/summary', [GuestController::class, 'summary']);

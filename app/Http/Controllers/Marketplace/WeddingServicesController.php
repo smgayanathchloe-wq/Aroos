@@ -30,7 +30,7 @@ class WeddingServicesController extends Controller
             'wedding' => $wedding,
             'open' => $enquiries->filter->isOpen(),
             'closed' => $enquiries->reject->isOpen()->where('status', '!=', 'accepted'),
-            'bookings' => $wedding->hasMany(ServiceBooking::class)->with(['provider', 'service', 'package'])->orderBy('event_date')->get(),
+            'bookings' => $wedding->hasMany(ServiceBooking::class)->with(['provider', 'service', 'package', 'review'])->orderBy('event_date')->get(),
             'favourites' => $request->user()->favouriteProviders()->with('primaryCategory')->get(),
         ]);
     }

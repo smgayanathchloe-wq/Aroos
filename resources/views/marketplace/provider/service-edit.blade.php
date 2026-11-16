@@ -22,7 +22,7 @@
     </label>
     <label class="text-xs text-muted">Base price ({{ config('marketplace.currency') }})<input type="number" min="0" name="base_price" value="{{ old('base_price', $service->base_price) }}" class="lux-input mt-1"></label>
     <label class="text-xs text-muted flex items-center gap-2 md:col-span-3"><input type="hidden" name="is_negotiable" value="0"><input type="checkbox" name="is_negotiable" value="1" @checked(old('is_negotiable', $service->is_negotiable))> Price is negotiable</label>
-    <label class="text-xs text-muted md:col-span-3">Description<textarea name="description" rows="5" class="lux-input mt-1">{{ old('description', $service->description) }}</textarea></label>
+    <label class="text-xs text-muted md:col-span-3"><span class="flex justify-between">Description @include('marketplace.provider._assist', ['kind' => 'service_description', 'target' => 'f-service-description'])</span><textarea id="f-service-description" name="description" rows="5" class="lux-input mt-1">{{ old('description', $service->description) }}</textarea></label>
     <label class="text-xs text-muted">Included (one per line)<textarea name="inclusions" rows="4" class="lux-input mt-1">{{ old('inclusions', implode("\n", $service->inclusions ?? [])) }}</textarea></label>
     <label class="text-xs text-muted">Not included (one per line)<textarea name="exclusions" rows="4" class="lux-input mt-1">{{ old('exclusions', implode("\n", $service->exclusions ?? [])) }}</textarea></label>
     <label class="text-xs text-muted">Requirements from the couple<textarea name="requirements" rows="4" class="lux-input mt-1">{{ old('requirements', $service->requirements) }}</textarea></label>

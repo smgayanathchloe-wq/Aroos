@@ -50,6 +50,12 @@
                 @endforeach
             </ul>
         </div>
+        @if(config('marketplace.ai.enabled'))
+            <div class="card p-5 text-sm">
+                <p class="eyebrow mb-2 flex justify-between">Social captions @include('marketplace.provider._assist', ['kind' => 'caption', 'target' => 'f-caption'])</p>
+                <textarea id="f-caption" rows="5" class="lux-input" placeholder="Notes for the captions (optional), then Draft with AI. Copy what you like."></textarea>
+            </div>
+        @endif
         <div class="card p-5 text-sm">
             <p class="eyebrow mb-2">Visibility</p>
             @if($provider->isBanned())

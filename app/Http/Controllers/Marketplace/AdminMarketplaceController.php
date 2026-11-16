@@ -10,6 +10,9 @@ use App\Models\Marketplace\ProviderProfile;
 use App\Models\Marketplace\ServiceBooking;
 use App\Models\Marketplace\ServiceCategory;
 use App\Models\Marketplace\ServiceEnquiry;
+use App\Marketplace\ReviewService;
+use App\Models\Marketplace\MarketplaceReport;
+use App\Models\Marketplace\ProviderReview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -111,6 +114,78 @@ class AdminMarketplaceController extends Controller
         AuditLog::record('media.'.$state, $media);
 
         return back()->with('success', 'Media '.$state.'.');
+    }
+
+    /** Paid promotion. Labelled "Sponsored" wherever shown; never affects verification or organic ranking. */
+    public function sponsorship(Request $request, ProviderProfile $provider)
+    {
+        $data = $request->validate(['featured_until' => ['nullable', 'date', 'after:today']]);
+        $provider->update(['is_sponsored' => (bool) ($data['featured_until'] ?? null), 'featured_until' => $data['featured_until'] ?? null]);
+        AuditLog::record('provider.sponsorship', $provider, $data);
+
+        return back()->with('success', $provider->is_sponsored ? 'Sponsored placement until '.$provider->featured_until->format('j M Y').'.' : 'Sponsored placement removed.');
+    }
+
+    public function reports(Request $request)
+    {
+        $status = $request->get('status', 'open');
+
+        return view('marketplace.admin.reports', [
+            'status' => $status,
+            'reports' => MarketplaceReport::with('reporter')->where('status', $status)->latest('id')->paginate(30)->withQueryString(),
+            'reviews' => ProviderReview::with(['provider', 'customer'])->latest('id')->limit(30)->get(),
+        ]);
+    }
+
+    public function resolveReport(Request $request, MarketplaceReport $report, ReviewService $reviews)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:resolved,dismissed'],
+            'action' => ['nullable', 'in:hide_review,hide_media'],
+            'resolution' => ['nullable', 'string', 'max:255'],
+        ]);
+        $subject = $report->subject();
+        if (($data['action'] ?? null) === 'hide_review' && $subject instanceof ProviderReview) {
+            $reviews->setStatus($subject, 'hidden', $data['resolution'] ?? 'Hidden after a report');
+        }
+        if (($data['action'] ?? null) === 'hide_media' && $subject instanceof ProviderMedia) {
+            $subject->update(['moderation' => 'hidden']);
+            \App\Marketplace\ProviderStats::refresh($subject->provider);
+        }
+        $report->update(['status' => $data['status'], 'resolution' => $data['resolution'] ?? null, 'handled_by' => $request->user()->id, 'handled_at' => now()]);
+        AuditLog::record('report.'.$data['status'], $report, $data);
+
+        return back()->with('success', 'Report '.$data['status'].'.');
+    }
+
+    public function moderateReview(Request $request, ProviderReview $review, ReviewService $reviews)
+    {
+        $data = $request->validate(['status' => ['required', 'in:published,hidden'], 'note' => ['nullable', 'string', 'max:255']]);
+        $reviews->setStatus($review, $data['status'], $data['note'] ?? null);
+        AuditLog::record('review.'.$data['status'], $review, $data);
+
+        return back()->with('success', 'Review '.$data['status'].'.');
+    }
+
+    public function analytics()
+    {
+        $enquiries = ServiceEnquiry::count();
+        $booked = ServiceBooking::whereIn('status', ServiceBooking::ACTIVE)->count();
+
+        return view('marketplace.admin.analytics', [
+            'totals' => [
+                'Providers' => ProviderProfile::count(),
+                'Listed providers' => ProviderProfile::listed()->count(),
+                'Requests' => $enquiries,
+                'Bookings (confirmed + completed)' => $booked,
+                'Request → booking' => $enquiries ? round(100 * $booked / $enquiries).'%' : '—',
+                'Reviews' => ProviderReview::where('status', 'published')->count(),
+                'Open reports' => MarketplaceReport::where('status', 'open')->count(),
+            ],
+            'byCategory' => ServiceCategory::topLevel()->withCount(['providers as listed' => fn ($q) => $q->listed()])->orderByDesc('listed')->get(),
+            'byRegion' => ProviderProfile::listed()->with('region')->get()->groupBy(fn ($p) => $p->region?->name ?? '—')->map->count()->sortDesc(),
+            'agreedValue' => (float) ServiceBooking::where('status', 'completed')->sum('agreed_amount'),
+        ]);
     }
 
     public function categories()

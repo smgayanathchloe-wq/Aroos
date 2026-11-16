@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ProviderSearch
 {
-    public const SORTS = ['recommended' => 'Recommended', 'price_asc' => 'Price: low to high', 'price_desc' => 'Price: high to low', 'newest' => 'Recently added'];
+    public const SORTS = ['recommended' => 'Recommended', 'rating' => 'Highest rated', 'reviews' => 'Most reviewed', 'price_asc' => 'Price: low to high', 'price_desc' => 'Price: high to low', 'newest' => 'Recently added'];
 
     public function query(array $f): Builder
     {
@@ -52,6 +52,9 @@ class ProviderSearch
         if (! empty($f['multi_service'])) {
             $q->where('services_count', '>', 1);
         }
+        if ($minRating = $f['min_rating'] ?? null) {
+            $q->where('rating_count', '>', 0)->where('rating_avg', '>=', (int) $minRating);
+        }
         if ($date = $f['date'] ?? null) {
             // Exclude providers who blocked the whole date. Capacity is re-checked on booking.
             $q->whereNotIn('id', ProviderBlackout::whereNull('service_id')->whereDate('starts_on', '<=', $date)->whereDate('ends_on', '>=', $date)->select('provider_id'));
@@ -61,9 +64,18 @@ class ProviderSearch
             'price_asc' => $q->orderByRaw('starting_price is null')->orderBy('starting_price'),
             'price_desc' => $q->orderByRaw('starting_price is null')->orderByDesc('starting_price'),
             'newest' => $q->latest('id'),
+            // Only providers with reviews rank by rating; the rest follow, unranked.
+            'rating' => $q->orderByRaw('rating_count = 0')->orderByDesc('rating_avg')->orderByDesc('rating_count'),
+            'reviews' => $q->orderByDesc('rating_count')->orderByDesc('rating_avg'),
             // Recommended = richest profiles first. Sponsored placement is shown separately and labelled.
-            default => $q->orderByDesc('has_portfolio')->orderByDesc('has_packages')->orderByDesc('services_count')->latest('verified_at'),
+            default => $q->orderByDesc('rating_avg')->orderByDesc('has_portfolio')->orderByDesc('has_packages')->orderByDesc('services_count')->latest('verified_at'),
         };
+    }
+
+    /** Up to three currently sponsored providers matching the same filters (labelled in the UI). */
+    public function sponsored(array $filters): \Illuminate\Support\Collection
+    {
+        return $this->query($filters)->where('is_sponsored', true)->where('featured_until', '>', now())->reorder()->inRandomOrder()->limit(3)->get();
     }
 
     public function search(array $filters, int $perPage = 18): LengthAwarePaginator

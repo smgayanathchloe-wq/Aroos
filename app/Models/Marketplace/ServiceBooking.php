@@ -25,5 +25,6 @@ class ServiceBooking extends Model
     public function wedding(): BelongsTo { return $this->belongsTo(Wedding::class); }
     public function customer(): BelongsTo { return $this->belongsTo(User::class, 'customer_user_id'); }
     public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
+    public function review(): \Illuminate\Database\Eloquent\Relations\HasOne { return $this->hasOne(ProviderReview::class, 'booking_id'); }
     public function history(): HasMany { return $this->hasMany(BookingStatusHistory::class, 'booking_id')->orderBy('id'); }
 }

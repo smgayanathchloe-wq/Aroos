@@ -6,7 +6,7 @@
         @else
             <div class="h-40 w-full" style="background: linear-gradient(135deg, #2D2820, #B08D57);" aria-hidden="true"></div>
         @endif
-        @if($p->is_sponsored && $p->featured_until?->isFuture())
+        @if($p->isSponsoredNow())
             <span class="absolute top-2 left-2 text-[10px] uppercase tracking-wide bg-white/90 rounded px-2 py-0.5">Sponsored</span>
         @endif
     </a>
@@ -18,6 +18,7 @@
                     @if($p->verification_status === 'verified')<span class="text-xs text-gold align-middle" title="Verified by Aroos">✔ Verified</span>@endif
                 </h3>
                 <p class="text-xs text-muted">{{ $p->primaryCategory?->name }} · {{ $p->region?->name }}{{ $p->city ? ', '.$p->city : '' }}</p>
+                @if($p->rating_count)<p class="text-xs mt-0.5"><span class="text-gold">★ {{ number_format((float) $p->rating_avg, 1) }}</span> <span class="text-muted">({{ $p->rating_count }})</span></p>@endif
             </div>
         </div>
         <p class="text-sm text-muted mt-3 line-clamp-2">{{ \Illuminate\Support\Str::limit($p->description, 120) }}</p>

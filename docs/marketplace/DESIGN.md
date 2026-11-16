@@ -1,6 +1,6 @@
 # Aroos Service Provider Marketplace — Assessment & Technical Design
 
-Status: **approved**. Decisions in §10. Steps 0–2 built (see README.md); Steps 3–5 not started.
+Status: **approved**. Decisions in §10. Steps 0–5 built (see README.md).
 
 ---
 

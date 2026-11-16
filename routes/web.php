@@ -17,6 +17,9 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\Marketplace\AdminMarketplaceController;
+use App\Http\Controllers\Marketplace\AssistantController;
+use App\Http\Controllers\Marketplace\ProviderInsightsController;
+use App\Http\Controllers\Marketplace\TrustController;
 use App\Http\Controllers\Marketplace\MarketplaceController;
 use App\Http\Controllers\Marketplace\NotificationController;
 use App\Http\Controllers\Marketplace\ProviderCatalogController;
@@ -110,6 +113,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/marketplace/providers/{provider}/ban', [AdminMarketplaceController::class, 'ban'])->name('admin.marketplace.ban');
         Route::post('/marketplace/providers/{provider}/unban', [AdminMarketplaceController::class, 'unban'])->name('admin.marketplace.unban');
         Route::post('/marketplace/media/{media}', [AdminMarketplaceController::class, 'moderateMedia'])->name('admin.marketplace.media');
+        Route::post('/marketplace/providers/{provider}/sponsorship', [AdminMarketplaceController::class, 'sponsorship'])->name('admin.marketplace.sponsorship');
+        Route::get('/marketplace/reports', [AdminMarketplaceController::class, 'reports'])->name('admin.marketplace.reports');
+        Route::post('/marketplace/reports/{report}', [AdminMarketplaceController::class, 'resolveReport'])->name('admin.marketplace.reports.resolve');
+        Route::post('/marketplace/reviews/{review}', [AdminMarketplaceController::class, 'moderateReview'])->name('admin.marketplace.reviews.moderate');
+        Route::get('/marketplace/analytics', [AdminMarketplaceController::class, 'analytics'])->name('admin.marketplace.analytics');
         Route::get('/marketplace/categories', [AdminMarketplaceController::class, 'categories'])->name('admin.marketplace.categories');
         Route::post('/marketplace/categories', [AdminMarketplaceController::class, 'storeCategory'])->name('admin.marketplace.categories.store');
         Route::put('/marketplace/categories/{category}', [AdminMarketplaceController::class, 'updateCategory'])->name('admin.marketplace.categories.update');
@@ -123,6 +131,8 @@ Route::middleware('auth')->group(function () {
     // Marketplace: discovery (any signed-in user)
     Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
     Route::get('/marketplace/saved', [MarketplaceController::class, 'favourites'])->name('marketplace.favourites');
+    Route::get('/marketplace/assistant', [AssistantController::class, 'show'])->middleware('throttle:30,60')->name('marketplace.assistant');
+    Route::post('/marketplace/reports', [TrustController::class, 'report'])->middleware('throttle:10,60')->name('marketplace.report');
     Route::get('/marketplace/providers/{provider}', [MarketplaceController::class, 'show'])->name('marketplace.provider');
     Route::post('/marketplace/providers/{provider}/favourite', [MarketplaceController::class, 'favourite'])->name('marketplace.favourite');
     Route::post('/marketplace/providers/{provider}/requests', [MarketplaceController::class, 'enquire'])
@@ -139,6 +149,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/requests/{enquiry}/message', [WeddingServicesController::class, 'message'])->middleware('throttle:60,60')->name('services.message');
         Route::post('/requests/{enquiry}/withdraw', [WeddingServicesController::class, 'withdraw'])->name('services.withdraw');
         Route::post('/bookings/{booking}/cancel', [WeddingServicesController::class, 'cancelBooking'])->name('services.bookings.cancel');
+        Route::post('/bookings/{booking}/review', [TrustController::class, 'review'])->middleware('throttle:10,60')->name('services.bookings.review');
     });
 
     // Marketplace: provider business area
@@ -178,11 +189,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/calendar', [ProviderWorkController::class, 'calendar'])->name('provider.calendar');
         Route::post('/calendar/blocks', [ProviderWorkController::class, 'storeBlackout'])->name('provider.blackouts.store');
         Route::delete('/calendar/blocks/{blackout}', [ProviderWorkController::class, 'destroyBlackout'])->name('provider.blackouts.destroy');
+        Route::get('/reviews', [ProviderInsightsController::class, 'reviews'])->name('provider.reviews');
+        Route::post('/reviews/{review}/respond', [ProviderInsightsController::class, 'respond'])->name('provider.reviews.respond');
+        Route::get('/team', [ProviderInsightsController::class, 'team'])->name('provider.team');
+        Route::post('/team', [ProviderInsightsController::class, 'invite'])->name('provider.team.invite');
+        Route::put('/team/{member}', [ProviderInsightsController::class, 'updateMember'])->name('provider.team.update');
+        Route::delete('/team/{member}', [ProviderInsightsController::class, 'removeMember'])->name('provider.team.remove');
+        Route::get('/analytics', [ProviderInsightsController::class, 'analytics'])->name('provider.analytics');
+        Route::post('/assist', [AssistantController::class, 'draft'])->middleware('throttle:30,60')->name('provider.assist');
     });
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::post('/notifications/preferences', [TrustController::class, 'preferences'])->name('notifications.preferences');
 
     Route::get('/weddings', [WeddingController::class, 'index'])->name('weddings.index');
     Route::post('/weddings', [WeddingController::class, 'store'])->name('weddings.store');

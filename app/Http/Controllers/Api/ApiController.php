@@ -21,6 +21,13 @@ abstract class ApiController extends Controller
     /** Cached per request once resolved. */
     protected ?Wedding $wedding = null;
 
+    /**
+     * The request the cached wedding belongs to. Laravel reuses controller
+     * instances across requests in long-lived processes (tests, Octane), so
+     * the cache must never outlive the request that filled it.
+     */
+    private ?Request $weddingRequest = null;
+
     protected function user(Request $request): User
     {
         return $request->user();
@@ -34,9 +41,11 @@ abstract class ApiController extends Controller
      */
     protected function wedding(Request $request): Wedding
     {
-        if ($this->wedding) {
+        if ($this->wedding && $this->weddingRequest === $request) {
             return $this->wedding;
         }
+        $this->wedding = null;
+        $this->weddingRequest = $request;
 
         $user = $this->user($request);
         $id = $request->header('X-Wedding-Id') ?: $request->input('wedding_id');

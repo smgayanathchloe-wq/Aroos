@@ -18,7 +18,7 @@ class MarketplaceNotification extends Notification implements ShouldQueue
     use Queueable;
 
     /** Events that are also emailed / sent by SMS. */
-    private const MAIL = ['enquiry.new', 'quote.received', 'quote.counter', 'booking.confirmed', 'booking.cancelled', 'enquiry.declined', 'provider.verified', 'provider.rejected', 'provider.banned'];
+    private const MAIL = ['review.new', 'team.invited', 'enquiry.new', 'quote.received', 'quote.counter', 'booking.confirmed', 'booking.cancelled', 'enquiry.declined', 'provider.verified', 'provider.rejected', 'provider.banned'];
     private const SMS = ['booking.confirmed', 'booking.cancelled'];
 
     public function __construct(
@@ -32,10 +32,13 @@ class MarketplaceNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
+        // In-app is always on; email and SMS follow the user's preferences (default on).
+        $prefs = \Illuminate\Support\Facades\DB::table('notification_preferences')->where('user_id', $notifiable->id)->first();
+
         return array_values(array_filter([
             'database',
-            in_array($this->event, self::MAIL, true) && ! empty($notifiable->email) ? 'mail' : null,
-            in_array($this->event, self::SMS, true) && ! empty($notifiable->phone) ? SmsChannel::class : null,
+            in_array($this->event, self::MAIL, true) && ! empty($notifiable->email) && ($prefs->email ?? true) ? 'mail' : null,
+            in_array($this->event, self::SMS, true) && ! empty($notifiable->phone) && ($prefs->sms ?? true) ? SmsChannel::class : null,
         ]));
     }
 

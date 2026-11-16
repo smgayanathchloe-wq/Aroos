@@ -33,6 +33,24 @@
                 <td class="px-4 py-3">@include('marketplace._status', ['status' => $b->status])</td>
                 <td class="px-4 py-3 text-right">
                     <a href="{{ route('services.enquiry', [$wedding, $b->enquiry_id]) }}" class="text-xs underline">Details</a>
+                    @if($b->status === 'completed' && ! $b->review)
+                        <details class="inline-block ml-3 text-left"><summary class="text-xs text-gold cursor-pointer">★ Review</summary>
+                            <form method="POST" action="{{ route('services.bookings.review', [$wedding, $b]) }}" class="mt-2 w-72 space-y-2">@csrf
+                                @foreach(['overall' => 'Overall *'] + \App\Models\Marketplace\ProviderReview::ASPECTS as $field => $label)
+                                    <label class="flex justify-between items-center text-xs text-muted">{{ $label }}
+                                        <select name="{{ $field }}" class="lux-input w-20 py-1" @if($field === 'overall') required @endif>
+                                            @if($field !== 'overall')<option value="">—</option>@endif
+                                            @foreach([5, 4, 3, 2, 1] as $n)<option value="{{ $n }}">{{ $n }}★</option>@endforeach
+                                        </select>
+                                    </label>
+                                @endforeach
+                                <textarea name="body" rows="3" placeholder="How was the service?" class="lux-input"></textarea>
+                                <button class="btn-gold text-xs">Publish review</button>
+                            </form>
+                        </details>
+                    @elseif($b->review)
+                        <span class="text-xs text-gold ml-3">{{ $b->review->overall }}★ reviewed</span>
+                    @endif
                     @if($b->status === 'confirmed')
                         <details class="inline-block ml-3 text-left"><summary class="text-xs text-muted cursor-pointer">Cancel</summary>
                             <form method="POST" action="{{ route('services.bookings.cancel', [$wedding, $b]) }}" class="mt-2 w-64 space-y-2">@csrf

@@ -36,12 +36,13 @@
                 </label>
                 <label class="text-xs text-muted">Propose another date<input type="date" name="proposed_date" min="{{ today()->toDateString() }}" value="{{ old('proposed_date') }}" class="lux-input mt-1"></label>
                 <label class="text-xs text-muted">Valid for (days)<input type="number" name="valid_days" min="1" max="60" value="{{ old('valid_days', config('marketplace.quote_validity_days')) }}" class="lux-input mt-1"></label>
-                <label class="text-xs text-muted md:col-span-2">Message<textarea name="message" rows="3" class="lux-input mt-1">{{ old('message') }}</textarea></label>
+                <label class="text-xs text-muted md:col-span-2"><span class="flex justify-between">Message @include('marketplace.provider._assist', ['kind' => 'quote_message', 'target' => 'f-quote-message', 'enquiryId' => $enquiry->id])</span><textarea id="f-quote-message" name="message" rows="3" class="lux-input mt-1">{{ old('message') }}</textarea></label>
                 <label class="text-xs text-muted md:col-span-2">Terms & conditions<textarea name="terms" rows="2" class="lux-input mt-1">{{ old('terms', $enquiry->package?->terms) }}</textarea></label>
                 <button class="btn-gold md:col-span-2">Send quotation</button>
             </form>
             <form method="POST" action="{{ route('provider.enquiries.message', $enquiry) }}" class="card p-5 space-y-3">@csrf
-                <textarea name="body" rows="3" required placeholder="Write to {{ $enquiry->contact_name }}…" class="lux-input" aria-label="Message"></textarea>
+<div class="flex justify-end gap-4">@include('marketplace.provider._assist', ['kind' => 'reply', 'target' => 'f-reply', 'enquiryId' => $enquiry->id]) @include('marketplace.provider._assist', ['kind' => 'summary', 'target' => 'f-reply', 'enquiryId' => $enquiry->id])</div>
+                <textarea id="f-reply" name="body" rows="3" required placeholder="Write to {{ $enquiry->contact_name }}…" class="lux-input" aria-label="Message"></textarea>
                 <div class="flex flex-wrap gap-2 items-center">
                     <select name="kind" class="lux-input w-auto" aria-label="Message type">
                         <option value="message">Message</option><option value="info_request">Ask for more information</option><option value="meeting_request">Request a meeting</option>

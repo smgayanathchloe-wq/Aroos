@@ -28,6 +28,7 @@ class ProviderProfile extends Model
         'has_packages' => 'boolean',
         'has_portfolio' => 'boolean',
         'starting_price' => 'decimal:2',
+        'rating_avg' => 'decimal:2',
     ];
 
     protected static function booted(): void
@@ -58,6 +59,11 @@ class ProviderProfile extends Model
     public function verifications(): HasMany { return $this->hasMany(ProviderVerification::class, 'provider_id')->latest('id'); }
     public function enquiries(): HasMany { return $this->hasMany(ServiceEnquiry::class, 'provider_id'); }
     public function bookings(): HasMany { return $this->hasMany(ServiceBooking::class, 'provider_id'); }
+    public function reviews(): HasMany { return $this->hasMany(ProviderReview::class, 'provider_id')->latest('id'); }
+    public function publishedReviews(): HasMany { return $this->reviews()->where('status', 'published'); }
+
+    /** Paid promotion currently running. Always labelled "Sponsored"; never implies verification or quality. */
+    public function isSponsoredNow(): bool { return $this->is_sponsored && $this->featured_until?->isFuture(); }
 
     /** Visible in the marketplace: published, verified and not banned. */
     public function scopeListed(Builder $q): Builder
@@ -74,7 +80,7 @@ class ProviderProfile extends Model
 
     public function memberFor(?User $user): ?ProviderMember
     {
-        return $user ? $this->members->first(fn (ProviderMember $m) => $m->user_id === $user->id && $m->status === 'active') : null;
+        return $user ? $this->members->first(fn (ProviderMember $m) => $m->user_id !== null && $m->user_id === $user->id && $m->status === 'active') : null;
     }
 
     /** Owner can do everything; staff only what the owner granted. */

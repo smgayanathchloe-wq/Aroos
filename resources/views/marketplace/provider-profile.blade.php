@@ -36,7 +36,7 @@
         </div>
     </div>
     <nav class="flex gap-5 px-6 border-t border-line text-sm overflow-x-auto" aria-label="Profile sections">
-        @foreach(['overview' => 'Overview', 'portfolio' => 'Portfolio', 'services' => 'Services & packages', 'info' => 'Business info', 'request' => 'Request'] as $id => $label)
+        @foreach(['overview' => 'Overview', 'portfolio' => 'Portfolio', 'services' => 'Services & packages', 'reviews' => 'Reviews', 'info' => 'Business info', 'request' => 'Request'] as $id => $label)
             <a href="#{{ $id }}" class="py-3 text-muted hover:text-gold whitespace-nowrap">{{ $label }}</a>
         @endforeach
     </nav>
@@ -116,6 +116,25 @@
         @endforeach
     </section>
 
+    <section id="reviews" class="card p-6">
+        <h2 class="eyebrow mb-3">Reviews</h2>
+        @forelse($reviews as $r)
+            <div class="border-t border-line first:border-0 py-4">
+                <div class="flex justify-between gap-2"><p class="text-sm"><span class="text-gold">{{ str_repeat('★', $r->overall) }}{{ str_repeat('☆', 5 - $r->overall) }}</span> · {{ $r->reviewerName() }} · <span class="text-muted">{{ $r->created_at->format('M Y') }}</span></p>
+                    <details class="text-xs"><summary class="text-muted cursor-pointer">Report</summary>
+                        <form method="POST" action="{{ route('marketplace.report') }}" class="mt-1 flex gap-1">@csrf<input type="hidden" name="type" value="review"><input type="hidden" name="id" value="{{ $r->id }}"><input name="reason" required placeholder="Why?" class="lux-input py-1 text-xs"><button class="text-red-500">Send</button></form>
+                    </details>
+                </div>
+                @php $aspects = collect(\App\Models\Marketplace\ProviderReview::ASPECTS)->filter(fn ($l, $k) => $r->{$k}); @endphp
+                @if($aspects->isNotEmpty())<p class="text-xs text-muted mt-1">{{ $aspects->map(fn ($l, $k) => $l.' '.$r->{$k}.'/5')->join(' · ') }}</p>@endif
+                @if($r->body)<p class="text-sm mt-2 whitespace-pre-line">{{ $r->body }}</p>@endif
+                @if($r->provider_response)<div class="mt-2 ml-4 pl-3 border-l-2 border-gold/40 text-sm"><p class="text-xs text-muted">Response from {{ $provider->business_name }}</p><p class="whitespace-pre-line">{{ $r->provider_response }}</p></div>@endif
+            </div>
+        @empty
+            <p class="text-sm text-muted">No reviews yet. Reviews come only from couples who booked through Aroos.</p>
+        @endforelse
+    </section>
+
     <section id="info" class="card p-6 text-sm">
         <h2 class="eyebrow mb-3">Business information</h2>
         <dl class="grid md:grid-cols-2 gap-x-6 gap-y-2">
@@ -132,6 +151,9 @@
                 @endforeach
             </div>
         @endif
+        <details class="mt-4 text-xs"><summary class="text-muted cursor-pointer">Report this provider</summary>
+            <form method="POST" action="{{ route('marketplace.report') }}" class="mt-2 flex gap-2">@csrf<input type="hidden" name="type" value="provider"><input type="hidden" name="id" value="{{ $provider->id }}"><input name="reason" required placeholder="What is wrong?" class="lux-input"><button class="text-red-500">Report</button></form>
+        </details>
     </section>
 </div>
 
@@ -169,18 +191,18 @@
                 </label>
             @endif
             <div class="grid grid-cols-3 gap-2">
-                <label class="block text-xs text-muted col-span-3">Event date <input type="date" name="event_date" value="{{ old('event_date', $weddings->first()?->wedding_date?->toDateString()) }}" min="{{ today()->toDateString() }}" required class="lux-input mt-1"></label>
+                <label class="block text-xs text-muted col-span-3">Event date <input type="date" name="event_date" value="{{ old('event_date', request('event_date', $weddings->first()?->wedding_date?->toDateString())) }}" min="{{ today()->toDateString() }}" required class="lux-input mt-1"></label>
                 <label class="block text-xs text-muted">From <input type="time" name="event_start" value="{{ old('event_start') }}" class="lux-input mt-1"></label>
                 <label class="block text-xs text-muted">To <input type="time" name="event_end" value="{{ old('event_end') }}" class="lux-input mt-1"></label>
-                <label class="block text-xs text-muted">Guests <input type="number" name="guests" value="{{ old('guests') }}" min="1" class="lux-input mt-1"></label>
+                <label class="block text-xs text-muted">Guests <input type="number" name="guests" value="{{ old('guests', request('guests')) }}" min="1" class="lux-input mt-1"></label>
             </div>
             <input name="venue" value="{{ old('venue') }}" placeholder="Venue / location" class="lux-input" aria-label="Venue">
             <select name="region_id" class="lux-input" aria-label="Region">
                 <option value="">Region</option>
-                @foreach($regions as $r)<option value="{{ $r->id }}" @selected(old('region_id') == $r->id)>{{ $r->name }}</option>@endforeach
+                @foreach($regions as $r)<option value="{{ $r->id }}" @selected(old('region_id', request('region_id')) == $r->id)>{{ $r->name }}</option>@endforeach
             </select>
-            <input type="number" name="budget" value="{{ old('budget') }}" min="0" placeholder="Budget ({{ config('marketplace.currency') }}, optional)" class="lux-input" aria-label="Budget">
-            <textarea name="requirements" rows="4" placeholder="What do you need? Special requests, timings, style…" class="lux-input" aria-label="Requirements">{{ old('requirements') }}</textarea>
+            <input type="number" name="budget" value="{{ old('budget', request('budget')) }}" min="0" placeholder="Budget ({{ config('marketplace.currency') }}, optional)" class="lux-input" aria-label="Budget">
+            <textarea name="requirements" rows="4" placeholder="What do you need? Special requests, timings, style…" class="lux-input" aria-label="Requirements">{{ old('requirements', request('draft')) }}</textarea>
             <div class="grid grid-cols-2 gap-2">
                 <select name="preferred_contact" class="lux-input" aria-label="Preferred contact">
                     @foreach(['aroos' => 'Aroos messages', 'phone' => 'Phone', 'whatsapp' => 'WhatsApp', 'email' => 'Email'] as $v => $l)<option value="{{ $v }}" @selected(old('preferred_contact') === $v)>{{ $l }}</option>@endforeach

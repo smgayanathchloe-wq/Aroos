@@ -5,7 +5,11 @@
 @section('content')
 <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
     <div><p class="eyebrow">Admin</p><h1 class="font-serif text-3xl mt-1">Marketplace</h1></div>
-    <a href="{{ route('admin.marketplace.categories') }}" class="btn-ghost">Categories</a>
+    <div class="flex gap-2">
+        <a href="{{ route('admin.marketplace.reports') }}" class="btn-ghost">Reports & reviews</a>
+        <a href="{{ route('admin.marketplace.analytics') }}" class="btn-ghost">Analytics</a>
+        <a href="{{ route('admin.marketplace.categories') }}" class="btn-ghost">Categories</a>
+    </div>
 </div>
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
     @foreach([['Providers', $stats['providers']], ['Listed', $stats['listed']], ['Awaiting review', $stats['queue']], ['Requests (30d)', $stats['enquiries_30d']], ['Bookings (30d)', $stats['bookings_30d']]] as [$l, $v])

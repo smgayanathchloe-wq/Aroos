@@ -1,8 +1,14 @@
 # Aroos Service Provider Marketplace
 
-What is built (Steps 0–2 of `DESIGN.md`): provider onboarding, profiles, services, packages, portfolio (photos, video uploads, Instagram/TikTok/YouTube links), verification and admin review, the public `/service-providers` page, discovery and search, favourites, requests (enquiries), quotations and negotiation, booking confirmation with capacity checks, the provider calendar, cancellations, and notifications.
+What is built (Steps 0–5 of `DESIGN.md`):
 
-Not built yet (Steps 3–5): reviews and ratings, provider team invitations (the permission model exists; only the owner is created today), provider analytics beyond the dashboard counts, AI assistants, the mobile API, and payments/subscriptions/commission.
+- **Providers:** onboarding, profiles, services, packages, portfolio (photos, video uploads, Instagram/TikTok/YouTube links), verification and admin review, team members with per-permission access, analytics.
+- **Couples and planners:** the public `/service-providers` page, discovery and search (rating sort and filter), favourites, requests (enquiries), quotations and negotiation, quote comparison.
+- **Bookings:** confirmation with capacity checks, the provider calendar, cancellations.
+- **Trust:** reviews and ratings with provider responses, reports and moderation.
+- **Platform:** sponsored placement, notifications with preferences, optional AI assistants, the mobile API.
+
+Not built: payments, subscriptions, commission and lead packages. The data model leaves room for them (`payment_status`, `is_sponsored` / `featured_until`).
 
 ## Install / deploy
 
@@ -17,7 +23,13 @@ Then:
 - **Background jobs:** keep the scheduler running (`php artisan schedule:work`, or `* * * * * php artisan schedule:run` in cron). It runs `marketplace:housekeeping` hourly, which expires stale requests and offers and marks past bookings completed. Run `php artisan queue:work` so emails and SMS are sent; in-app notifications are written immediately.
 - **Video uploads:** raise PHP `upload_max_filesize` and `post_max_size` (for example to 110M). The default on this server is 16M/32M, so 100 MB videos would be rejected before Laravel sees them.
 - **Optional `.env`:** `MARKETPLACE_CURRENCY` (TZS), `MARKETPLACE_ENQUIRY_EXPIRY_DAYS` (14), `MARKETPLACE_QUOTE_VALIDITY_DAYS` (7), `MARKETPLACE_MAX_IMAGE_MB` (10), `MARKETPLACE_MAX_VIDEO_MB` (100), `MARKETPLACE_MAX_MEDIA` (200).
-- **External services:** none new. Email uses the SMTP configured in Admin → Gateways, and SMS uses the existing SMS gateway.
+- **External services:** none required. Email uses the SMTP configured in Admin → Gateways, and SMS uses the existing SMS gateway.
+- **Optional AI** (off by default; everything works without it):
+  - `MARKETPLACE_AI_ENABLED=true`
+  - `MARKETPLACE_AI_PROVIDER` = `anthropic` | `openai` | `azure_openai` | `self_hosted`
+  - `MARKETPLACE_AI_MODEL` (default `claude-opus-5-5`)
+  - `MARKETPLACE_AI_BASE_URL` (for self-hosted or Azure)
+  - The provider's key, shared with outreach: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY` or `OUTREACH_LLM_API_KEY`.
 
 ## Business rules (enforced on the server)
 
@@ -46,6 +58,34 @@ Then:
 
     Email goes out for the important events and SMS only for booking confirmed or cancelled. Each user gets each event once, and nobody is notified about their own action.
 
+15. **Reviews.** Only someone on the wedding that booked can review, once per booking, after the booking is completed, and never someone on the provider's own team. The rating is recomputed from published reviews only. Providers can respond publicly. Reports go to an admin queue, and hiding a review removes it from the rating.
+16. **Team.** The owner adds staff by email. Staff without an account join automatically when they sign up with that email. Each staff member gets only the permissions granted: see requests, reply & quote, calendar, bookings, edit services/profile, analytics. Only the owner manages the team, publishes, and submits verification.
+17. **Sponsored placement** is set by admins only. It appears in a separate row labelled "Sponsored — paid placement, not a ranking or endorsement". It never changes verification or the organic order.
+18. **Recommendations** ("Plan my services") come from a transparent score: region, budget fit, free on the date, rating, portfolio. Each point is shown as a reason. Providers unavailable on the date are left out. Sponsorship adds nothing.
+19. **Budget estimates** come from real package prices and accepted quotations, shown only with at least 3 data points, and labelled as estimates.
+20. **AI only reads and writes text.** It turns a description into search criteria (checked against real categories and regions) and drafts wording that the person edits. It never names providers, prices or availability, and never saves or sends anything itself. When it fails or is off, the manual form is used.
+
+## Mobile API (`/api/v1/marketplace`, Sanctum token)
+
+Wedding-side calls send `X-Wedding-Id`. Read access is enough, so couples can act.
+
+| Method | Path | |
+|---|---|---|
+| GET | `categories`, `regions` | reference data |
+| GET | `providers?q&category&region&min_price&max_price&pricing&min_rating&date&sort` | search (paginated) |
+| GET | `providers/{slug}` | profile, services, packages, media, reviews (contact per visibility) |
+| POST | `providers/{slug}/favourite` · GET `favourites` | save/unsave |
+| POST | `providers/{slug}/requests` | send a request for the wedding |
+| GET | `requests` · `requests/{id}` | the wedding's requests and the thread |
+| POST | `requests/{id}/counter` · `accept` (`version_id`, `confirm`) · `message` · `withdraw` | negotiate / book |
+| GET | `bookings` · POST `bookings/{id}/cancel` · `bookings/{id}/review` | wedding bookings |
+| GET | `business` · `business/requests` · `business/requests/{id}` | provider side (includes the wedding's contact) |
+| POST | `business/requests/{id}/quote` · `message` · `decline` | respond |
+| GET | `business/bookings` · POST `business/bookings/{id}/complete` / `cancel` | bookings |
+| GET | `business/calendar?month=YYYY-MM` | calendar data |
+
+Errors use the existing envelope: `{success:false, message, errors}`. A business-rule refusal returns 422.
+
 ## Where things are
 
 | Area | Path |
@@ -53,8 +93,9 @@ Then:
 | Public page | `GET /service-providers` |
 | Discovery | `/marketplace`, `/marketplace/providers/{slug}`, `/marketplace/saved` |
 | Wedding side | `/weddings/{id}/services` (requests, bookings, compare) |
-| Provider area | `/provider` (dashboard, requests, bookings, calendar, services, portfolio, profile, verification) |
-| Admin | `/admin/marketplace`, `/admin/marketplace/categories` |
+| Provider area | `/provider` (dashboard, requests, bookings, calendar, services, portfolio, reviews, analytics, team, profile, verification) |
+| Assistant | `/marketplace/assistant` |
+| Admin | `/admin/marketplace` (queue, providers, ban, sponsorship), `/reports`, `/analytics`, `/categories` |
 | Rules | `app/Marketplace/*` (`NegotiationService`, `BookingService`, `AvailabilityService`, `ProviderSearch`, `Notifier`) |
 | Authorization | `app/Policies/Marketplace/*` |
 | Tests | `tests/Feature/Marketplace/*` |

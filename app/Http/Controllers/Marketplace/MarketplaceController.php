@@ -40,6 +40,7 @@ class MarketplaceController extends Controller
             'has_portfolio' => ['nullable', 'boolean'],
             'multi_service' => ['nullable', 'boolean'],
             'date' => ['nullable', 'date'],
+            'min_rating' => ['nullable', 'integer', 'between:1,5'],
             'sort' => ['nullable', 'in:'.implode(',', array_keys(ProviderSearch::SORTS))],
         ]);
         $searching = collect($filters)->except('sort')->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
@@ -48,6 +49,8 @@ class MarketplaceController extends Controller
             'filters' => $filters,
             'searching' => $searching,
             'results' => $searching ? $search->search($filters) : null,
+            // Paid placement: shown in its own labelled row, never mixed into the results ranking.
+            'sponsored' => $searching ? $search->sponsored($filters) : collect(),
             'categories' => ServiceCategory::active()->topLevel()->withCount(['providers as listed_count' => fn ($q) => $q->listed()])->orderBy('sort')->get(),
             'regions' => TzRegion::orderBy('name')->get(),
             'favouriteIds' => $request->user()->favouriteProviders()->pluck('provider_profiles.id')->all(),
@@ -78,6 +81,7 @@ class MarketplaceController extends Controller
             'weddings' => $weddings,
             'regions' => TzRegion::orderBy('name')->get(),
             'isFavourite' => $user->favouriteProviders()->whereKey($provider->id)->exists(),
+            'reviews' => $provider->publishedReviews()->with('customer')->limit(30)->get(),
             // Provider-controlled visibility: "after_enquiry" contacts appear once this user's wedding has sent a request.
             'showPhone' => $provider->phone_visibility === 'public' || $hasEnquired,
             'showEmail' => $provider->email_visibility === 'public' || $hasEnquired,
