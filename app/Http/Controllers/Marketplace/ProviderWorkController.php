@@ -112,12 +112,26 @@ class ProviderWorkController extends Controller
     public function calendar(Request $request, AvailabilityService $availability)
     {
         $provider = $this->provider($request, 'calendar');
-        $month = CarbonImmutable::parse(($request->get('month') ?: now()->format('Y-m')).'-01');
+        $view = in_array($request->get('view'), ['month', 'week', 'day'], true) ? $request->get('view') : 'month';
+        try {
+            $date = CarbonImmutable::parse($request->get('date') ?: ($request->get('month') ? $request->get('month').'-01' : 'today'))->startOfDay();
+        } catch (\Throwable) {
+            $date = CarbonImmutable::today();
+        }
+
+        [$from, $to] = match ($view) {
+            'day' => [$date, $date],
+            'week' => [$date->startOfWeek(CarbonImmutable::MONDAY), $date->endOfWeek(CarbonImmutable::SUNDAY)->startOfDay()],
+            default => [$date->startOfMonth()->startOfWeek(CarbonImmutable::MONDAY), $date->endOfMonth()->endOfWeek(CarbonImmutable::SUNDAY)->startOfDay()],
+        };
 
         return view('marketplace.provider.calendar', [
             'provider' => $provider,
-            'month' => $month,
-            'data' => $availability->month($provider->id, $month),
+            'view' => $view,
+            'date' => $date,
+            'from' => $from,
+            'to' => $to,
+            'data' => $availability->range($provider->id, $from, $to),
             'services' => $provider->services()->get(),
         ]);
     }

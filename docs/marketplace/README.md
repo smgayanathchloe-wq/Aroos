@@ -4,7 +4,7 @@ What is built (Steps 0–5 of `DESIGN.md`):
 
 - **Providers:** onboarding, profiles, services, packages, portfolio (photos, video uploads, Instagram/TikTok/YouTube links), verification and admin review, team members with per-permission access, analytics.
 - **Couples and planners:** the public `/service-providers` page, discovery and search (rating sort and filter), favourites, requests (enquiries), quotations and negotiation, quote comparison.
-- **Bookings:** confirmation with capacity checks, the provider calendar, cancellations.
+- **Bookings:** confirmation with capacity checks, the provider calendar (month, week and day views), cancellations.
 - **Trust:** reviews and ratings with provider responses, reports and moderation.
 - **Platform:** sponsored placement, notifications with preferences, optional AI assistants, the mobile API.
 

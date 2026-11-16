@@ -265,7 +265,12 @@ class NegotiationAndBookingTest extends TestCase
         $this->actingAs($planner)->get(route('services.index', $wedding))->assertOk()->assertSee($provider->business_name);
         $this->actingAs($planner)->get(route('services.enquiry', [$wedding, $e1]))->assertOk()->assertSee('Accept & book', false);
         $this->actingAs($planner)->get(route('services.compare', [$wedding, 'ids' => [$e1->id, $e2->id]]))->assertOk()->assertSee('Latest offer');
-        $this->actingAs($provider->owner)->get(route('provider.calendar'))->assertOk();
+        $booking = app(BookingService::class)->accept($e1, $e1->latestVersion()->id, $planner);
+        $day = $booking->event_date->toDateString();
+        $this->actingAs($provider->owner)->get(route('provider.calendar', ['date' => $day]))->assertOk()->assertSee('Wedding photography');
+        $this->actingAs($provider->owner)->get(route('provider.calendar', ['view' => 'week', 'date' => $day]))->assertOk()->assertSee('Asha &amp; Juma', false);
+        $this->actingAs($provider->owner)->get(route('provider.calendar', ['view' => 'day', 'date' => $day]))->assertOk()->assertSee($booking->reference);
+        $this->actingAs($provider->owner)->get(route('provider.calendar', ['view' => 'day', 'date' => 'not-a-date']))->assertOk();
         $this->actingAs($planner)->get(route('notifications.index'))->assertOk();
     }
 }

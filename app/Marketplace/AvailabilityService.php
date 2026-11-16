@@ -58,16 +58,19 @@ class AvailabilityService
     /** Booked and blocked days of a month for the provider calendar. */
     public function month(int $providerId, CarbonImmutable $month): array
     {
-        $from = $month->startOfMonth();
-        $to = $month->endOfMonth();
+        return $this->range($providerId, $month->startOfMonth(), $month->endOfMonth());
+    }
 
+    /** Confirmed/completed bookings, tentative requests and blocks between two dates, grouped by day. */
+    public function range(int $providerId, CarbonImmutable $from, CarbonImmutable $to): array
+    {
         return [
             'bookings' => ServiceBooking::with(['service', 'wedding'])->where('provider_id', $providerId)
-                ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
-                ->whereIn('status', ServiceBooking::ACTIVE)->orderBy('event_date')->get()->groupBy(fn ($b) => $b->event_date->toDateString()),
+                ->whereDate('event_date', '>=', $from->toDateString())->whereDate('event_date', '<=', $to->toDateString())
+                ->whereIn('status', ServiceBooking::ACTIVE)->orderBy('event_date')->orderBy('starts_at')->get()->groupBy(fn ($b) => $b->event_date->toDateString()),
             'tentative' => \App\Models\Marketplace\ServiceEnquiry::where('provider_id', $providerId)
                 ->whereIn('status', ['quoted', 'negotiating'])
-                ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
+                ->whereDate('event_date', '>=', $from->toDateString())->whereDate('event_date', '<=', $to->toDateString())
                 ->get()->groupBy(fn ($e) => $e->event_date->toDateString()),
             'blackouts' => ProviderBlackout::with('service')->where('provider_id', $providerId)
                 ->whereDate('starts_on', '<=', $to)->whereDate('ends_on', '>=', $from)->get(),
