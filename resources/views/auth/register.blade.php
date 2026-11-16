@@ -36,6 +36,7 @@
                     <input type="password" name="password_confirmation" required class="lux-input">
                 </div>
                 <button class="btn-gold w-full py-3">Create account</button>
+                <p class="text-xs text-muted text-center">By creating an account you agree to the <a href="{{ route('terms') }}" target="_blank" class="text-gold hover:underline">Terms and Conditions</a>.</p>
             </form>
         </div>
         <p class="text-center text-xs text-muted mt-6">Already have an account? <a href="{{ route('login') }}" class="text-gold hover:underline">Sign in</a></p>

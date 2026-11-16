@@ -103,5 +103,6 @@
         <p class="mt-3 text-sm" style="color:#C9AB7C;">Showcase your work to couples planning their weddings on Aroos.</p>
         <a href="{{ auth()->check() ? route('provider.register') : route('register') }}" class="btn-gold px-8 py-3 mt-8">Register your business</a>
     </section>
+    @include('legal._footer')
 </div>
 @endsection

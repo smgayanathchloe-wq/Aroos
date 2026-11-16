@@ -45,6 +45,7 @@ use App\Http\Controllers\WeddingController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::view('/terms', 'legal.terms')->name('terms');
 Route::post('/contact', [LandingController::class, 'contact'])->name('landing.contact');
 
 // Auth

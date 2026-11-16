@@ -119,7 +119,7 @@
             @yield('content')
         </main>
 
-        <footer class="text-center py-6 text-xs no-print" style="color: #8A7E6F; background: #FAF7F2;">Powered by <a href="https://letsventure.co.tz" class="hover:underline" style="color: #C4A560;">LetsVenture</a></footer>
+        <footer class="text-center py-6 text-xs no-print" style="color: #8A7E6F; background: #FAF7F2;"><a href="{{ route('terms') }}" class="hover:underline">Terms and Conditions</a> · Powered by <a href="https://letsventure.co.tz" class="hover:underline" style="color: #C4A560;">LetsVenture</a></footer>
     </div>
 </div>
 @endsection
