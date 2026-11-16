@@ -4,36 +4,47 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/** Marketplace steps 3–4: reviews, ratings, reports, team invitations, notification preferences. Additive. */
+/**
+ * Marketplace steps 3–4: reviews, ratings, reports, team invitations, notification preferences. Additive.
+ *
+ * Each step checks what already exists: MySQL cannot roll back DDL, so a run
+ * that failed half-way (an index name was once too long) can be re-run safely.
+ */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('provider_reviews', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_id')->unique()->constrained('service_bookings')->cascadeOnDelete();
-            $table->foreignId('provider_id')->constrained('provider_profiles')->cascadeOnDelete();
-            $table->foreignId('wedding_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('customer_user_id')->constrained('users')->cascadeOnDelete();
-            $table->unsignedTinyInteger('overall');
-            $table->unsignedTinyInteger('quality')->nullable();
-            $table->unsignedTinyInteger('communication')->nullable();
-            $table->unsignedTinyInteger('professionalism')->nullable();
-            $table->unsignedTinyInteger('value')->nullable();
-            $table->text('body')->nullable();
-            $table->text('provider_response')->nullable();
-            $table->timestamp('responded_at')->nullable();
-            $table->string('status', 10)->default('published'); // published, hidden
-            $table->string('moderation_note')->nullable();
-            $table->timestamps();
-            $table->index(['provider_id', 'status']);
-        });
+        if (! Schema::hasTable('provider_reviews')) {
+            Schema::create('provider_reviews', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('booking_id')->unique()->constrained('service_bookings')->cascadeOnDelete();
+                $table->foreignId('provider_id')->constrained('provider_profiles')->cascadeOnDelete();
+                $table->foreignId('wedding_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('customer_user_id')->constrained('users')->cascadeOnDelete();
+                $table->unsignedTinyInteger('overall');
+                $table->unsignedTinyInteger('quality')->nullable();
+                $table->unsignedTinyInteger('communication')->nullable();
+                $table->unsignedTinyInteger('professionalism')->nullable();
+                $table->unsignedTinyInteger('value')->nullable();
+                $table->text('body')->nullable();
+                $table->text('provider_response')->nullable();
+                $table->timestamp('responded_at')->nullable();
+                $table->string('status', 10)->default('published'); // published, hidden
+                $table->string('moderation_note')->nullable();
+                $table->timestamps();
+                $table->index(['provider_id', 'status']);
+            });
+        }
 
-        Schema::table('provider_profiles', function (Blueprint $table) {
-            $table->decimal('rating_avg', 3, 2)->nullable();
-            $table->unsignedInteger('rating_count')->default(0);
-        });
+        if (! Schema::hasColumn('provider_profiles', 'rating_avg')) {
+            Schema::table('provider_profiles', function (Blueprint $table) {
+                $table->decimal('rating_avg', 3, 2)->nullable();
+                $table->unsignedInteger('rating_count')->default(0);
+            });
+        }
 
+        // A failed earlier run may have left this table without its unique index.
+        Schema::dropIfExists('marketplace_reports');
         Schema::create('marketplace_reports', function (Blueprint $table) {
             $table->id();
             $table->foreignId('reporter_user_id')->nullable()->constrained('users')->nullOnDelete();
@@ -46,15 +57,19 @@ return new class extends Migration
             $table->string('resolution')->nullable();
             $table->timestamps();
             $table->index(['status', 'reportable_type']);
-            $table->unique(['reporter_user_id', 'reportable_type', 'reportable_id']);
+            // Explicit short name: MySQL limits identifiers to 64 characters.
+            $table->unique(['reporter_user_id', 'reportable_type', 'reportable_id'], 'mk_reports_reporter_subject_unique');
         });
 
         // Staff can be invited before they have an Aroos account.
-        Schema::table('provider_members', function (Blueprint $table) {
-            $table->string('email')->nullable()->after('user_id');
-            $table->foreignId('user_id')->nullable()->change();
-        });
+        if (! Schema::hasColumn('provider_members', 'email')) {
+            Schema::table('provider_members', function (Blueprint $table) {
+                $table->string('email')->nullable()->after('user_id');
+                $table->foreignId('user_id')->nullable()->change();
+            });
+        }
 
+        Schema::dropIfExists('notification_preferences');
         Schema::create('notification_preferences', function (Blueprint $table) {
             $table->foreignId('user_id')->primary()->constrained()->cascadeOnDelete();
             $table->boolean('email')->default(true);

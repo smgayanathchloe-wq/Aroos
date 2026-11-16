@@ -11,9 +11,9 @@ use Illuminate\Database\Seeder;
  * needs to work (packages, marketplace regions and categories) plus a bootstrap admin taken from the
  * environment.
  *
- * The demo wedding and its sample users are NOT seeded here: they carry
- * known passwords and fictional data that should never appear on a live
- * site. Seed them explicitly in a test environment:
+ * The demo wedding and its sample users are NOT seeded here: fictional data
+ * should never appear on a live site. Seed them explicitly in a test
+ * environment (prints the accounts; set DEMO_PASSWORD to choose the password):
  *
  *   php artisan db:seed --class=RoleUsersSeeder
  */
