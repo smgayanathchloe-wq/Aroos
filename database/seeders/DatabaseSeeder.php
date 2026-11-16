@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
  * Brings a fresh database to a usable state.
  *
  * Production-safe by default. It seeds only the reference data the app
- * needs to work (packages) plus a bootstrap admin taken from the
+ * needs to work (packages, marketplace regions and categories) plus a bootstrap admin taken from the
  * environment.
  *
  * The demo wedding and its sample users are NOT seeded here: they carry
@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PackageSeeder::class,
+            MarketplaceSeeder::class,
             AdminUserSeeder::class,
         ]);
     }

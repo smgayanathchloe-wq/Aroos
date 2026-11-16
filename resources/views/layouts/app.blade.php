@@ -28,6 +28,7 @@
                     ['inspiration.index', 'Inspiration', '💡'],
                     ['photos.index', 'Photos & Albums', '📸'],
                     ['memories.index', 'Memories', '💌'],
+                    ['services.index', 'Service Providers', '🛍️'],
                     ['pledges.index', 'Pledges & Gifts', '🎁'],
                     ['outreach.index', 'AI Outreach', '🤖'],
                     ['reminders.index', 'Messages', '✉️'],
@@ -47,10 +48,27 @@
             @endforeach
         </nav>
         @endisset
+        @php
+            $unread = auth()->user()->unreadNotifications()->count();
+            $mkLinks = [
+                [route('marketplace.index'), 'Marketplace', '🛍️', request()->routeIs('marketplace.*')],
+                [route('provider.dashboard'), 'My business', '🏢', request()->routeIs('provider.*')],
+                [route('notifications.index'), 'Notifications'.($unread ? " ($unread)" : ''), '🔔', request()->routeIs('notifications.*')],
+            ];
+        @endphp
+        <nav class="py-3 text-sm @isset($wedding) @else flex-1 @endisset" style="border-top: 1px solid #2A241E;" aria-label="Marketplace">
+            @foreach($mkLinks as [$href, $label, $icon, $active])
+                <a href="{{ $href }}" class="flex items-center gap-3 px-6 py-2 transition"
+                   style="{{ $active ? 'color:#C9AB7C;background:#1B1713;border-right:2px solid #B08D57;' : 'color:rgba(244,237,227,.65);' }}">
+                    <span class="w-5 text-center text-xs">{{ $icon }}</span> {{ $label }}
+                </a>
+            @endforeach
+        </nav>
         <div class="px-6 py-4" style="border-top: 1px solid #2A241E;">
             @if(auth()->user()->isSuperAdmin())
                 <a href="{{ route('admin.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.index') ? '#C9AB7C' : '#8A7E6F' }};">⚙️ Admin Panel</a>
                 <a href="{{ route('admin.packages.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.packages*') ? '#C9AB7C' : '#8A7E6F' }};">📦 Packages</a>
+                <a href="{{ route('admin.marketplace.index') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.marketplace*') ? '#C9AB7C' : '#8A7E6F' }};">🏪 Marketplace admin</a>
                 <a href="{{ route('admin.settings') }}" class="block text-xs mb-1.5" style="color: {{ request()->routeIs('admin.settings*') ? '#C9AB7C' : '#8A7E6F' }};">🔧 Gateways & Payments</a>
                 <a href="{{ route('admin.requests') }}" class="block text-xs mb-3" style="color: {{ request()->routeIs('admin.requests*') ? '#C9AB7C' : '#8A7E6F' }};">📥 Requests</a>
             @endif
@@ -69,16 +87,20 @@
         {{-- Mobile top bar --}}
         <div class="lg:hidden flex items-center justify-between px-4 py-3 no-print" style="background: #14110E; border-bottom: 1px solid #2A241E;">
             <a href="{{ route('weddings.index') }}" class="font-serif text-xl" style="color: #F4EDE3;">Ar<span style="color: #C4A560;">oo</span>s</a>
-            @isset($wedding)
             <details class="relative">
                 <summary class="cursor-pointer list-none text-sm px-3 py-1.5 rounded border" style="color: #F4EDE3; border-color: #2A241E;">Menu</summary>
                 <nav class="absolute right-0 mt-2 w-60 card p-2 z-50 max-h-96 overflow-y-auto" style="background: #FAF7F2;">
-                    @foreach($nav as [$route, $label, $icon])
-                        <a href="{{ route($route, $wedding) }}" class="block px-3 py-2 rounded hover:bg-gray-200 text-sm" style="color: #14110E;">{{ $icon }} {{ $label }}</a>
+                    @isset($wedding)
+                        @foreach($nav as [$route, $label, $icon])
+                            <a href="{{ route($route, $wedding) }}" class="block px-3 py-2 rounded hover:bg-gray-200 text-sm" style="color: #14110E;">{{ $icon }} {{ $label }}</a>
+                        @endforeach
+                        <hr class="my-1">
+                    @endisset
+                    @foreach($mkLinks as [$href, $label, $icon])
+                        <a href="{{ $href }}" class="block px-3 py-2 rounded hover:bg-gray-200 text-sm" style="color: #14110E;">{{ $icon }} {{ $label }}</a>
                     @endforeach
                 </nav>
             </details>
-            @endisset
         </div>
 
         <main class="p-6 lg:p-10 max-w-7xl w-full flex-1" style="background: #FAF7F2;">

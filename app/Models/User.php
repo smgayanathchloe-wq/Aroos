@@ -45,6 +45,25 @@ class User extends Authenticatable
         return $this->hasMany(Wedding::class);
     }
 
+    public function providerMemberships(): HasMany
+    {
+        return $this->hasMany(\App\Models\Marketplace\ProviderMember::class)->where('status', 'active');
+    }
+
+    /** The service provider business this user owns or works for, if any. */
+    public function providerProfile(): ?\App\Models\Marketplace\ProviderProfile
+    {
+        $membership = $this->providerMemberships()->with('provider.members')->orderByRaw("role = 'owner' desc")->first();
+
+        return $membership?->provider;
+    }
+
+    public function favouriteProviders(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Marketplace\ProviderProfile::class, 'favourite_providers', 'user_id', 'provider_id')
+            ->withPivot('created_at');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;

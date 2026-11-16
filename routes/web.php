@@ -16,6 +16,13 @@ use App\Http\Controllers\InspirationController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\Marketplace\AdminMarketplaceController;
+use App\Http\Controllers\Marketplace\MarketplaceController;
+use App\Http\Controllers\Marketplace\NotificationController;
+use App\Http\Controllers\Marketplace\ProviderCatalogController;
+use App\Http\Controllers\Marketplace\ProviderOnboardingController;
+use App\Http\Controllers\Marketplace\ProviderWorkController;
+use App\Http\Controllers\Marketplace\WeddingServicesController;
 use App\Http\Controllers\OutreachController;
 use App\Http\Controllers\Webhooks\ClickPesaWebhookController;
 use App\Http\Controllers\Webhooks\VoiceWebhookController;
@@ -53,6 +60,9 @@ Route::post('/w/{slug}/rsvp/{token}', [PublicSiteController::class, 'submitRsvp'
 Route::get('/w/{slug}/invitation/{token}', [PublicSiteController::class, 'invitation'])->name('public.invitation');
 Route::get('/w/{slug}/checkin/{token}', [CheckinController::class, 'scan'])->name('public.checkin.scan');
 Route::post('/w/{slug}/checkin/{token}', [CheckinController::class, 'confirm'])->name('public.checkin.confirm');
+
+// Service provider marketplace: public marketing page (no listings)
+Route::get('/service-providers', [MarketplaceController::class, 'landing'])->name('marketplace.landing');
 
 // Provider webhooks (signature-verified in the controllers; CSRF-exempt)
 Route::prefix('/webhooks')->middleware('throttle:600,1')->group(function () {
@@ -93,11 +103,86 @@ Route::middleware('auth')->group(function () {
         Route::put('/packages/{package}', [PackageController::class, 'update'])->name('admin.packages.update');
         Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('admin.packages.destroy');
 
+        // Marketplace administration
+        Route::get('/marketplace', [AdminMarketplaceController::class, 'index'])->name('admin.marketplace.index');
+        Route::get('/marketplace/providers/{provider}', [AdminMarketplaceController::class, 'show'])->name('admin.marketplace.provider')->withTrashed();
+        Route::post('/marketplace/providers/{provider}/review', [AdminMarketplaceController::class, 'review'])->name('admin.marketplace.review');
+        Route::post('/marketplace/providers/{provider}/ban', [AdminMarketplaceController::class, 'ban'])->name('admin.marketplace.ban');
+        Route::post('/marketplace/providers/{provider}/unban', [AdminMarketplaceController::class, 'unban'])->name('admin.marketplace.unban');
+        Route::post('/marketplace/media/{media}', [AdminMarketplaceController::class, 'moderateMedia'])->name('admin.marketplace.media');
+        Route::get('/marketplace/categories', [AdminMarketplaceController::class, 'categories'])->name('admin.marketplace.categories');
+        Route::post('/marketplace/categories', [AdminMarketplaceController::class, 'storeCategory'])->name('admin.marketplace.categories.store');
+        Route::put('/marketplace/categories/{category}', [AdminMarketplaceController::class, 'updateCategory'])->name('admin.marketplace.categories.update');
+
         // Analytics
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics.index');
         Route::get('/analytics/wedding/{wedding}', [AnalyticsController::class, 'wedding'])->name('admin.analytics.wedding');
         Route::delete('/analytics/wedding/{wedding}', [AnalyticsController::class, 'deleteWedding'])->name('admin.wedding.delete');
     });
+
+    // Marketplace: discovery (any signed-in user)
+    Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
+    Route::get('/marketplace/saved', [MarketplaceController::class, 'favourites'])->name('marketplace.favourites');
+    Route::get('/marketplace/providers/{provider}', [MarketplaceController::class, 'show'])->name('marketplace.provider');
+    Route::post('/marketplace/providers/{provider}/favourite', [MarketplaceController::class, 'favourite'])->name('marketplace.favourite');
+    Route::post('/marketplace/providers/{provider}/requests', [MarketplaceController::class, 'enquire'])
+        ->middleware('throttle:20,60')->name('marketplace.enquire');
+
+    // Marketplace: the wedding's requests and bookings. Outside wedding.access on
+    // purpose: couples (read-only elsewhere) may request and book services.
+    Route::prefix('/weddings/{wedding}/services')->group(function () {
+        Route::get('/', [WeddingServicesController::class, 'index'])->name('services.index');
+        Route::get('/compare', [WeddingServicesController::class, 'compare'])->name('services.compare');
+        Route::get('/requests/{enquiry}', [WeddingServicesController::class, 'enquiry'])->name('services.enquiry');
+        Route::post('/requests/{enquiry}/counter', [WeddingServicesController::class, 'counter'])->middleware('throttle:30,60')->name('services.counter');
+        Route::post('/requests/{enquiry}/accept', [WeddingServicesController::class, 'accept'])->name('services.accept');
+        Route::post('/requests/{enquiry}/message', [WeddingServicesController::class, 'message'])->middleware('throttle:60,60')->name('services.message');
+        Route::post('/requests/{enquiry}/withdraw', [WeddingServicesController::class, 'withdraw'])->name('services.withdraw');
+        Route::post('/bookings/{booking}/cancel', [WeddingServicesController::class, 'cancelBooking'])->name('services.bookings.cancel');
+    });
+
+    // Marketplace: provider business area
+    Route::prefix('/provider')->group(function () {
+        Route::get('/', [ProviderOnboardingController::class, 'dashboard'])->name('provider.dashboard');
+        Route::get('/register', [ProviderOnboardingController::class, 'create'])->name('provider.register');
+        Route::post('/register', [ProviderOnboardingController::class, 'store'])->name('provider.register.store');
+        Route::get('/profile', [ProviderOnboardingController::class, 'edit'])->name('provider.profile');
+        Route::put('/profile', [ProviderOnboardingController::class, 'update'])->name('provider.profile.update');
+        Route::post('/visibility', [ProviderOnboardingController::class, 'visibility'])->name('provider.visibility');
+        Route::get('/verification', [ProviderOnboardingController::class, 'verification'])->name('provider.verification');
+        Route::post('/verification', [ProviderOnboardingController::class, 'submitVerification'])->name('provider.verification.submit');
+        Route::get('/verification/documents/{document}', [ProviderOnboardingController::class, 'document'])->name('provider.verification.document');
+
+        Route::get('/services', [ProviderCatalogController::class, 'services'])->name('provider.services');
+        Route::post('/services', [ProviderCatalogController::class, 'storeService'])->name('provider.services.store');
+        Route::get('/services/{service}', [ProviderCatalogController::class, 'editService'])->name('provider.services.edit');
+        Route::put('/services/{service}', [ProviderCatalogController::class, 'updateService'])->name('provider.services.update');
+        Route::delete('/services/{service}', [ProviderCatalogController::class, 'archiveService'])->name('provider.services.archive');
+        Route::post('/services/{service}/packages', [ProviderCatalogController::class, 'storePackage'])->name('provider.packages.store');
+        Route::put('/packages/{package}', [ProviderCatalogController::class, 'updatePackage'])->name('provider.packages.update');
+        Route::post('/packages/{package}/duplicate', [ProviderCatalogController::class, 'duplicatePackage'])->name('provider.packages.duplicate');
+        Route::delete('/packages/{package}', [ProviderCatalogController::class, 'archivePackage'])->name('provider.packages.archive');
+        Route::get('/portfolio', [ProviderCatalogController::class, 'portfolio'])->name('provider.portfolio');
+        Route::post('/portfolio', [ProviderCatalogController::class, 'storeMedia'])->name('provider.media.store');
+        Route::put('/portfolio/{media}', [ProviderCatalogController::class, 'updateMedia'])->name('provider.media.update');
+        Route::delete('/portfolio/{media}', [ProviderCatalogController::class, 'destroyMedia'])->name('provider.media.destroy');
+
+        Route::get('/requests', [ProviderWorkController::class, 'enquiries'])->name('provider.enquiries');
+        Route::get('/requests/{enquiry}', [ProviderWorkController::class, 'enquiry'])->name('provider.enquiries.show');
+        Route::post('/requests/{enquiry}/quote', [ProviderWorkController::class, 'quote'])->name('provider.enquiries.quote');
+        Route::post('/requests/{enquiry}/message', [ProviderWorkController::class, 'message'])->middleware('throttle:60,60')->name('provider.enquiries.message');
+        Route::post('/requests/{enquiry}/decline', [ProviderWorkController::class, 'decline'])->name('provider.enquiries.decline');
+        Route::get('/bookings', [ProviderWorkController::class, 'bookings'])->name('provider.bookings');
+        Route::post('/bookings/{booking}/complete', [ProviderWorkController::class, 'completeBooking'])->name('provider.bookings.complete');
+        Route::post('/bookings/{booking}/cancel', [ProviderWorkController::class, 'cancelBooking'])->name('provider.bookings.cancel');
+        Route::get('/calendar', [ProviderWorkController::class, 'calendar'])->name('provider.calendar');
+        Route::post('/calendar/blocks', [ProviderWorkController::class, 'storeBlackout'])->name('provider.blackouts.store');
+        Route::delete('/calendar/blocks/{blackout}', [ProviderWorkController::class, 'destroyBlackout'])->name('provider.blackouts.destroy');
+    });
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
 
     Route::get('/weddings', [WeddingController::class, 'index'])->name('weddings.index');
     Route::post('/weddings', [WeddingController::class, 'store'])->name('weddings.store');

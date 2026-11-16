@@ -8,3 +8,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Illuminate\Support\Facades\Schedule::command('outreach:tick')->everyMinute()->withoutOverlapping();
+Illuminate\Support\Facades\Schedule::command('marketplace:housekeeping')->hourly()->withoutOverlapping();

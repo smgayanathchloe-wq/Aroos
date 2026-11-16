@@ -12,6 +12,7 @@
             <a href="#story" class="hover:text-gold transition">The Experience</a>
             <a href="#features" class="hover:text-gold transition">What's Inside</a>
             <a href="#pricing" class="hover:text-gold transition">Packages</a>
+            <a href="{{ route('marketplace.landing') }}" class="hover:text-gold transition">Service Providers</a>
             <a href="#contact" class="hover:text-gold transition">Talk to us</a>
         </nav>
         <div class="flex items-center gap-3">
