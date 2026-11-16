@@ -27,7 +27,7 @@
             <input name="pledger_name" placeholder="Pledger name *" required class="lux-input col-span-2">
             <input type="email" name="pledger_email" placeholder="Email" class="lux-input">
             <input name="pledger_phone" placeholder="Phone (+255…)" class="lux-input">
-            <input type="number" step="0.01" name="amount" placeholder="Amount ({{ $wedding->currency }}) *" required class="lux-input">
+            <input type="number" step="0.01" min="0" name="amount" placeholder="Amount ({{ $wedding->currency }}) — 0 if not pledged yet" class="lux-input">
             <input type="date" name="due_date" title="Due date" class="lux-input">
             <select name="guest_id" class="lux-input col-span-2">
                 <option value="">Link to a guest (optional)</option>
@@ -46,13 +46,13 @@
             <input name="contributor_name" placeholder="Contributor name *" required class="lux-input col-span-2">
             <input type="number" step="0.01" name="amount" placeholder="Amount *" required class="lux-input">
             <select name="method" class="lux-input">
-                @foreach(['cash' => 'Cash', 'mpesa' => 'M-Pesa', 'bank' => 'Bank transfer', 'paypal' => 'PayPal', 'stripe' => 'Card (Stripe)', 'other' => 'Other'] as $v => $l)
+                @foreach(['cash' => 'Cash', 'mpesa' => 'M-Pesa / mobile money', 'bank' => 'Bank transfer', 'clickpesa' => 'ClickPesa', 'paypal' => 'PayPal', 'stripe' => 'Card (Stripe)', 'other' => 'Other'] as $v => $l)
                     <option value="{{ $v }}">{{ $l }}</option>
                 @endforeach
             </select>
             <select name="pledge_id" class="lux-input col-span-2">
                 <option value="">Apply to a pledge (optional)</option>
-                @foreach($pledges->whereIn('status', ['pledged', 'partial']) as $p)
+                @foreach($pledges->whereIn('status', ['none', 'pledged', 'partial']) as $p)
                     <option value="{{ $p->id }}">{{ $p->pledger_name }} — balance {{ number_format($p->balance()) }}</option>
                 @endforeach
             </select>
@@ -66,7 +66,7 @@
 <div class="flex items-center gap-3 mb-4">
     <p class="eyebrow">Pledges</p>
     <div class="flex gap-1">
-        @foreach(['' => 'All', 'pledged' => 'Pledged', 'partial' => 'Partial', 'fulfilled' => 'Fulfilled'] as $v => $l)
+        @foreach(['' => 'All', 'none' => 'Not pledged yet', 'pledged' => 'Pledged', 'partial' => 'Partial', 'fulfilled' => 'Fulfilled'] as $v => $l)
             <a href="{{ route('pledges.index', [$wedding, 'status' => $v]) }}" class="text-xs px-3 py-1 rounded-full border {{ request('status', '') === $v ? 'border-gold text-gold' : 'border-line text-muted hover:text-cream' }}">{{ $l }}</a>
         @endforeach
     </div>
@@ -96,12 +96,19 @@
                     <td class="px-4 py-3 text-gold">{{ number_format($pledge->totalContributed()) }}</td>
                     <td class="px-4 py-3">{{ number_format($pledge->balance()) }}</td>
                     <td class="px-4 py-3">
-                        @php $pc = ['pledged' => 'text-muted border-line', 'partial' => 'text-goldlight border-gold/40', 'fulfilled' => 'text-gold border-gold', 'cancelled' => 'text-red-400 border-red-400/40']; @endphp
-                        <span class="text-xs border rounded-full px-2.5 py-1 {{ $pc[$pledge->status] }}">{{ ucfirst($pledge->status) }}</span>
+                        @php $pc = ['none' => 'text-muted border-line border-dashed', 'pledged' => 'text-muted border-line', 'partial' => 'text-goldlight border-gold/40', 'fulfilled' => 'text-gold border-gold', 'cancelled' => 'text-red-400 border-red-400/40']; @endphp
+                        <span class="text-xs border rounded-full px-2.5 py-1 {{ $pc[$pledge->status] ?? 'text-muted border-line' }}">{{ $pledge->status === 'none' ? 'Not pledged yet' : ucfirst($pledge->status) }}</span>
                     </td>
                     <td class="px-4 py-3 text-xs text-muted">{{ optional($pledge->due_date)->format('M j, Y') ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right">
-                        <form method="POST" action="{{ route('pledges.destroy', [$wedding, $pledge]) }}" onsubmit="return confirm('Remove this pledge?')">
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        @if($pledge->pledger_phone && $pledge->balance() > 0)
+                            <form method="POST" action="{{ route('pledges.clickpesa', [$wedding, $pledge]) }}" class="inline" onsubmit="return confirm({{ \Illuminate\Support\Js::from('Send a ClickPesa payment prompt to '.$pledge->pledger_name.' for '.number_format($pledge->balance()).'?') }})">
+                                @csrf
+                                <input type="hidden" name="amount" value="{{ $pledge->balance() }}">
+                                <button class="text-xs text-muted hover:text-gold mr-3" title="Send a mobile-money payment prompt">ClickPesa</button>
+                            </form>
+                        @endif
+                        <form method="POST" action="{{ route('pledges.destroy', [$wedding, $pledge]) }}" class="inline" onsubmit="return confirm('Remove this pledge?')">
                             @csrf @method('DELETE')
                             <button class="text-xs text-muted hover:text-red-400">×</button>
                         </form>

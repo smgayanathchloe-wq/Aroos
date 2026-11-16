@@ -16,6 +16,10 @@ use App\Http\Controllers\InspirationController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MemoryController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OutreachController;
+use App\Http\Controllers\Webhooks\ClickPesaWebhookController;
+use App\Http\Controllers\Webhooks\VoiceWebhookController;
+use App\Http\Controllers\Webhooks\WhatsAppWebhookController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PledgeController;
 use App\Http\Controllers\PledgeImportController;
@@ -49,6 +53,23 @@ Route::post('/w/{slug}/rsvp/{token}', [PublicSiteController::class, 'submitRsvp'
 Route::get('/w/{slug}/invitation/{token}', [PublicSiteController::class, 'invitation'])->name('public.invitation');
 Route::get('/w/{slug}/checkin/{token}', [CheckinController::class, 'scan'])->name('public.checkin.scan');
 Route::post('/w/{slug}/checkin/{token}', [CheckinController::class, 'confirm'])->name('public.checkin.confirm');
+
+// Provider webhooks (signature-verified in the controllers; CSRF-exempt)
+Route::prefix('/webhooks')->middleware('throttle:600,1')->group(function () {
+    Route::get('/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
+    Route::post('/whatsapp', [WhatsAppWebhookController::class, 'cloud'])->name('webhooks.whatsapp.cloud');
+    Route::post('/twilio/messaging', [WhatsAppWebhookController::class, 'twilio'])->name('webhooks.twilio.messaging');
+    Route::post('/voice/{conversation}/answer', [VoiceWebhookController::class, 'answer'])->name('webhooks.voice.answer');
+    Route::post('/voice/{conversation}/turn', [VoiceWebhookController::class, 'turn'])->name('webhooks.voice.turn');
+    Route::post('/voice/{conversation}/status', [VoiceWebhookController::class, 'status'])->name('webhooks.voice.status');
+    Route::post('/clickpesa', ClickPesaWebhookController::class)->name('webhooks.clickpesa');
+});
+// Synthesised call audio for the telephony provider to play (unguessable names, deleted after a day)
+Route::get('/outreach/audio/{file}', function (string $file) {
+    abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists('outreach-audio/'.$file), 404);
+
+    return \Illuminate\Support\Facades\Storage::disk('local')->response('outreach-audio/'.$file);
+})->where('file', '[0-9a-f-]{36}\.(mp3|wav)')->name('outreach.audio');
 
 // Authenticated app
 Route::middleware('auth')->group(function () {
@@ -189,6 +210,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/pledges/import/preview', [PledgeImportController::class, 'preview'])->name('pledges.import.preview');
         Route::post('/pledges/import', [PledgeImportController::class, 'store'])->name('pledges.import.store');
         Route::get('/pledges/import/template', [PledgeImportController::class, 'template'])->name('pledges.import.template');
+
+        Route::post('/pledges/{pledge}/clickpesa', [PledgeController::class, 'requestClickPesa'])->name('pledges.clickpesa');
+
+        // AI pledge outreach
+        Route::get('/outreach', [OutreachController::class, 'index'])->name('outreach.index');
+        Route::post('/outreach/pledges/{pledge}/contact', [OutreachController::class, 'contact'])->name('outreach.contact');
+        Route::post('/outreach/campaign', [OutreachController::class, 'campaign'])->name('outreach.campaign');
+        Route::post('/outreach/consent', [OutreachController::class, 'consent'])->name('outreach.consent');
+        Route::get('/outreach/settings', [OutreachController::class, 'settings'])->name('outreach.settings');
+        Route::put('/outreach/settings', [OutreachController::class, 'updateSettings'])->name('outreach.settings.update');
+        Route::put('/outreach/secrets', [OutreachController::class, 'updateSecrets'])->name('outreach.secrets.update');
+        Route::get('/outreach/conversations', [OutreachController::class, 'conversations'])->name('outreach.conversations');
+        Route::get('/outreach/conversations/{conversation}', [OutreachController::class, 'conversation'])->name('outreach.conversation');
+        Route::get('/outreach/follow-ups', [OutreachController::class, 'followUps'])->name('outreach.followups');
+        Route::post('/outreach/follow-ups/{followUp}', [OutreachController::class, 'closeFollowUp'])->name('outreach.followups.close');
+        Route::post('/outreach/jobs/{job}/cancel', [OutreachController::class, 'cancelJob'])->name('outreach.jobs.cancel');
+        Route::post('/outreach/questions/{query}/answer', [OutreachController::class, 'answerQuestion'])->name('outreach.questions.answer');
 
         Route::get('/pledges/print', [PledgeController::class, 'printList'])->name('pledges.print');
         Route::get('/pledges/report/print', [PledgeReportController::class, 'print'])->name('pledges.report.print');

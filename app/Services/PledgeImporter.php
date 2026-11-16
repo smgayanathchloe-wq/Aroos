@@ -362,6 +362,7 @@ class PledgeImporter
             'contributor_name' => $row['name'],
             'amount' => $row['contribution'],
             'method' => 'other',
+            'source' => 'import',
             'reference' => self::importReference(),
             'received_on' => $row['date'] ?? now()->toDateString(),
             'notes' => 'Imported from spreadsheet.',

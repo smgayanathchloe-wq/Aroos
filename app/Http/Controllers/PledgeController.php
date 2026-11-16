@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Contribution;
 use App\Models\Pledge;
 use App\Models\Wedding;
+use App\Services\ClickPesa;
+use App\Services\PaymentRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,14 +40,17 @@ class PledgeController extends Controller
             'pledger_email' => ['nullable', 'email', 'max:255'],
             'pledger_phone' => ['nullable', 'string', 'max:30'],
             'guest_id' => ['nullable', 'integer', 'exists:guests,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            // 0 = this person has not pledged yet; the AI outreach invites them to.
+            'amount' => ['nullable', 'numeric', 'min:0'],
             'due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
+        $data['amount'] = (float) ($data['amount'] ?? 0);
+        $data['status'] = Pledge::statusFor($data['amount'], 0);
 
         $wedding->pledges()->create($data);
 
-        return back()->with('success', 'Pledge recorded.');
+        return back()->with('success', $data['amount'] > 0 ? 'Pledge recorded.' : 'Person added; they have not pledged yet.');
     }
 
     public function update(Request $request, Wedding $wedding, Pledge $pledge)
@@ -55,12 +60,15 @@ class PledgeController extends Controller
             'pledger_name' => ['required', 'string', 'max:255'],
             'pledger_email' => ['nullable', 'email', 'max:255'],
             'pledger_phone' => ['nullable', 'string', 'max:30'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'min:0'],
             'due_date' => ['nullable', 'date'],
-            'status' => ['nullable', 'in:pledged,partial,fulfilled,cancelled'],
+            'status' => ['nullable', 'in:none,pledged,partial,fulfilled,cancelled'],
             'notes' => ['nullable', 'string'],
         ]);
         $pledge->update($data);
+        if (($data['status'] ?? null) !== 'cancelled') {
+            $pledge->refreshStatus();
+        }
 
         return back()->with('success', 'Pledge updated.');
     }
@@ -126,29 +134,52 @@ class PledgeController extends Controller
         return view('pledges.print', compact('wedding', 'pledges', 'contributions'));
     }
 
-    public function storeContribution(Request $request, Wedding $wedding)
+    public function storeContribution(Request $request, Wedding $wedding, PaymentRecorder $payments)
     {
         $data = $request->validate([
             'pledge_id' => ['nullable', 'integer', 'exists:pledges,id'],
             'guest_id' => ['nullable', 'integer', 'exists:guests,id'],
             'contributor_name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'method' => ['required', 'in:cash,mpesa,bank,paypal,stripe,other'],
+            'method' => ['required', 'in:cash,mpesa,bank,paypal,stripe,clickpesa,other'],
             'reference' => ['nullable', 'string', 'max:255'],
             'received_on' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $contribution = $wedding->contributions()->create($data);
+        $pledge = isset($data['pledge_id']) ? $wedding->pledges()->find($data['pledge_id']) : null;
 
-        if ($contribution->pledge_id) {
-            $pledge = Pledge::find($contribution->pledge_id);
-            if ($pledge && $pledge->wedding_id === $wedding->id) {
-                $pledge->refreshStatus();
+        if ($pledge) {
+            $contribution = $payments->record($pledge, (float) $data['amount'], $data['method'], 'manual',
+                $data['reference'] ?? null, $data['received_on'] ?? null, $data['notes'] ?? null);
+            if (($data['contributor_name'] ?? '') !== '' && $contribution) {
+                $contribution->update(['contributor_name' => $data['contributor_name']]);
             }
+        } else {
+            unset($data['pledge_id']);
+            $wedding->contributions()->create($data);
         }
 
         return back()->with('success', 'Contribution recorded.');
+    }
+
+    /** Ask the pledger to pay via a ClickPesa mobile-money push (USSD prompt on their phone). */
+    public function requestClickPesa(Request $request, Wedding $wedding, Pledge $pledge, ClickPesa $clickPesa)
+    {
+        abort_unless($pledge->wedding_id === $wedding->id, 404);
+        $data = $request->validate(['amount' => ['required', 'numeric', 'min:500']]);
+
+        if (! $clickPesa->configured($wedding->outreach())) {
+            return back()->withErrors(['clickpesa' => 'ClickPesa is not set up for this wedding.']);
+        }
+
+        try {
+            $result = $clickPesa->requestPayment($pledge, (float) $data['amount']);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['clickpesa' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Payment prompt sent to '.$pledge->pledger_name.' (ref '.$result['order_reference'].'). It will be recorded automatically once paid.');
     }
 
     public function destroyContribution(Wedding $wedding, Contribution $contribution)

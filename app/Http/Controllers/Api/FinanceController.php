@@ -7,7 +7,6 @@ use App\Models\Contribution;
 use App\Models\Pledge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -145,14 +144,15 @@ class FinanceController extends ApiController
             'pledger_phone' => ['sometimes', 'nullable', 'string', 'max:40'],
             'pledger_email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
-            'status' => ['sometimes', Rule::in(['pledged', 'partial', 'paid', 'cancelled'])],
+            'status' => ['sometimes', Rule::in(['none', 'pledged', 'partial', 'paid', 'cancelled'])],
             'due_date' => ['sometimes', 'nullable', 'date'],
             'guest_id' => ['sometimes', 'nullable', 'integer'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
 
         $data['wedding_id'] = $wedding->id;
-        $data['status'] = $data['status'] ?? 'pledged';
+        // The app says "paid"; the ledger stores "fulfilled" like the web dashboard.
+        $data['status'] = ($data['status'] ?? null) === 'cancelled' ? 'cancelled' : Pledge::statusFor((float) $data['amount'], 0);
 
         return $this->ok($this->pledge(Pledge::create($data)->fresh('guest')));
     }
@@ -168,10 +168,15 @@ class FinanceController extends ApiController
             'pledger_phone' => ['sometimes', 'nullable', 'string', 'max:40'],
             'pledger_email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'amount' => ['sometimes', 'numeric', 'min:0'],
-            'status' => ['sometimes', Rule::in(['pledged', 'partial', 'paid', 'cancelled'])],
+            'status' => ['sometimes', Rule::in(['none', 'pledged', 'partial', 'paid', 'cancelled'])],
             'due_date' => ['sometimes', 'nullable', 'date'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]))->save();
+
+        // Status follows the ledger unless the pledge is being cancelled.
+        if ($pledge->status !== 'cancelled') {
+            $pledge->refreshStatus();
+        }
 
         return $this->ok($this->pledge($pledge->fresh('guest')));
     }
@@ -189,7 +194,7 @@ class FinanceController extends ApiController
      * Record money received against a pledge, and move the pledge's status
      * to match what has now been paid.
      */
-    public function storeContribution(Request $request): JsonResponse
+    public function storeContribution(Request $request, \App\Services\PaymentRecorder $payments): JsonResponse
     {
         $wedding = $this->authorizeEdit($request);
 
@@ -204,32 +209,8 @@ class FinanceController extends ApiController
 
         $pledge = $this->findScoped($request, Pledge::class, (int) $data['pledge_id']);
 
-        $contribution = DB::transaction(function () use ($data, $pledge, $wedding) {
-            $contribution = Contribution::create([
-                'wedding_id' => $wedding->id,
-                'pledge_id' => $pledge->id,
-                'guest_id' => $pledge->guest_id,
-                'contributor_name' => $pledge->pledger_name,
-                'amount' => $data['amount'],
-                'method' => $data['method'] ?? null,
-                'reference' => $data['reference'] ?? null,
-                'received_on' => $data['received_on'] ?? now()->toDateString(),
-                'notes' => $data['notes'] ?? null,
-            ]);
-
-            // Recompute from the ledger rather than incrementing, so the
-            // status is always consistent with what was actually received.
-            $paid = (float) Contribution::where('pledge_id', $pledge->id)->sum('amount');
-
-            $pledge->status = match (true) {
-                $paid <= 0 => 'pledged',
-                $paid + 0.001 >= (float) $pledge->amount => 'paid',
-                default => 'partial',
-            };
-            $pledge->save();
-
-            return $contribution;
-        });
+        $contribution = $payments->record($pledge, (float) $data['amount'], $data['method'] ?? 'other', 'api',
+            $data['reference'] ?? null, $data['received_on'] ?? null, $data['notes'] ?? null);
 
         return $this->ok($this->contribution($contribution->fresh()) + [
             'pledge_status' => $pledge->fresh()->status,
@@ -309,7 +290,7 @@ class FinanceController extends ApiController
             'paid' => round($paid, 2),
             'outstanding' => round(max(0, (float) $p->amount - $paid), 2),
             'percent_paid' => $p->amount > 0 ? round($paid / $p->amount * 100, 1) : 0,
-            'status' => $p->status,
+            'status' => $p->status === 'fulfilled' ? 'paid' : $p->status,
             'due_date' => $p->due_date,
             'guest_id' => $p->guest_id,
             'guest_name' => $p->guest?->fullName(),

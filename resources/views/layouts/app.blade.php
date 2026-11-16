@@ -29,6 +29,7 @@
                     ['photos.index', 'Photos & Albums', '📸'],
                     ['memories.index', 'Memories', '💌'],
                     ['pledges.index', 'Pledges & Gifts', '🎁'],
+                    ['outreach.index', 'AI Outreach', '🤖'],
                     ['reminders.index', 'Messages', '✉️'],
                     ['collaborators.index', 'Collaborators', '🔑'],
                     ['website.edit', 'Website', '🌐'],

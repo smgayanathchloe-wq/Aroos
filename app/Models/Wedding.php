@@ -15,7 +15,11 @@ class Wedding extends Model
     protected $casts = [
         'wedding_date' => 'date',
         'total_budget' => 'decimal:2',
+        'outreach_config' => 'array',
+        'outreach_secrets' => 'encrypted:array',
     ];
+
+    protected $hidden = ['outreach_secrets'];
 
     protected static function booted(): void
     {
@@ -53,6 +57,16 @@ class Wedding extends Model
     public function reminders(): HasMany { return $this->hasMany(Reminder::class); }
     public function storagePlan(): HasOne { return $this->hasOne(StoragePlan::class); }
     public function subscriptions(): HasMany { return $this->hasMany(WeddingSubscription::class); }
+    public function conversations(): HasMany { return $this->hasMany(Conversation::class); }
+    public function outreachJobs(): HasMany { return $this->hasMany(OutreachJob::class); }
+    public function followUps(): HasMany { return $this->hasMany(FollowUp::class); }
+    public function knowledgeQueries(): HasMany { return $this->hasMany(KnowledgeQuery::class); }
+    public function optOuts(): HasMany { return $this->hasMany(OptOut::class); }
+
+    public function outreach(): \App\Outreach\OutreachConfig
+    {
+        return \App\Outreach\OutreachConfig::for($this);
+    }
 
     public function coupleNames(): string
     {

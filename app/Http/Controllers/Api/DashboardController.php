@@ -152,9 +152,9 @@ class DashboardController extends ApiController
             'outstanding' => round(max(0, $promised - $received), 2),
             'fulfilment_rate' => $promised > 0 ? round($received / $promised * 100, 1) : 0,
             'count' => $pledges->count(),
-            'paid' => $pledges->where('status', 'paid')->count(),
+            'paid' => $pledges->whereIn('status', ['paid', 'fulfilled'])->count(),
             'partial' => $pledges->where('status', 'partial')->count(),
-            'pending' => $pledges->whereNotIn('status', ['paid', 'partial'])->count(),
+            'pending' => $pledges->whereNotIn('status', ['paid', 'fulfilled', 'partial'])->count(),
         ];
     }
 
